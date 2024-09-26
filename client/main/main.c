@@ -280,11 +280,10 @@ void send_data(socket, conf_data) {
         send(socket, pack, strlen(pack), 0);
     }
     else {
-        ESP_LOGI(TAG,"Mensaje invalido\n");
         //error
-        close_tcp(socket);
+        ESP_LOGI(TAG,"Mensaje invalido\n");
     }
-    
+    close_tcp(socket);
 }
 
 
@@ -294,7 +293,11 @@ void app_main(void){
     wifi_init_sta(WIFI_SSID, WIFI_PASSWORD);
     ESP_LOGI(TAG,"Conectado a WiFi!\n");
     int sock = socket_tcp();
+    ESP_LOGI(TAG,"Conectado al socket\n");
     char* conf_data = config_conn(sock);
-    send_data(sock, conf_data)
-    // ESP_DEEP_SLEEP
+    ESP_LOGI(TAG,"Configuracion lista, enviando datos\n");
+    send_data(sock, conf_data);
+    ESP_LOGI(TAG,"A mimir\n");
+    //Deep Sleep for one second
+    esp_deep_sleep(1000000);
 }
