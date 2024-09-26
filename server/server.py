@@ -21,7 +21,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     print("El servidor está esperando conexiones en el puerto", PORT)
 
     while True:
-        conn, addr = s.accept()  # Espera una conexión
+        conn, addr = s.accept()
         with conn:
             print('Conectado por', addr)
             data = conn.recv(1024)
@@ -42,6 +42,28 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         header = data2[:12]
                         body = data2[12:]
 
-                        #Separate header values and put in db
+                        # Separate header values and put in db
+                        mac = header[:6].decode('utf-8')
+                        msg = header[6:8].decode('utf-8')
+                        protocol = str(header[8])
+                        transport = str(header[9])
+                        length = header[10:].decode('utf-8')
 
-                        #Acording to protocol, separate body values and put on db
+                        # Acording to protocol, separate body values and put on db
+                        if(protocol == "0"):
+                            timestamp = int(body.decode('utf-8'))
+                        if(protocol == "1"):
+                            timestamp = int(body[:4].decode('utf-8'))
+                            batt_level = int(str(body[4]))
+                        if(protocol == "2"):
+                            timestamp = int(body[:4].decode('utf-8'))
+                            batt_level = int(str(body[4]))
+                            temp = int(str(body[5]))
+                            press = int(body[6:10].decode('utf-8'))
+                            hum = int(str(body[11]))
+                            co = float(body[12:].decode('utf-8'))
+                        if(protocol == "3"):
+                            continue
+                        if(protocol == "4"):
+                            continue
+
