@@ -1,3 +1,5 @@
+server/venv
+
 build/
 sdkconfig
 sdkconfig.old
