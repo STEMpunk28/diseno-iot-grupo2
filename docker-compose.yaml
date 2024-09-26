@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:15.2
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=iot_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_NAME=postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data_iot:/var/lib/postgresql/data
+volumes:
+  postgres_data_iot:
