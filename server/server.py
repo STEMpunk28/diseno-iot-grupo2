@@ -49,19 +49,39 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         transport = str(header[9])
                         length = header[10:].decode('utf-8')
 
+                        Dev.insert(mac_address=mac).execute()
+                        dev_id = Dev.select(mac_address=mac)[0]
+                        Log.insert(
+                            msg_id = msg,
+                            device_id=dev_id,
+                            protocol_id=protocol,
+                            transport_layer=transport,
+                            length=length).execute()
+
                         # Acording to protocol, separate body values and put on db
                         if(protocol == "0"):
-                            timestamp = int(body.decode('utf-8'))
+                            time = int(body.decode('utf-8'))
+                            Data.insert(timestamp=time).execute()
                         if(protocol == "1"):
-                            timestamp = int(body[:4].decode('utf-8'))
-                            batt_level = int(str(body[4]))
+                            time = int(body[:4].decode('utf-8'))
+                            batt = int(str(body[4]))
+                            Data.insert(
+                                timestamp=time,
+                                batt_level=batt).execute()
                         if(protocol == "2"):
-                            timestamp = int(body[:4].decode('utf-8'))
-                            batt_level = int(str(body[4]))
+                            time = int(body[:4].decode('utf-8'))
+                            batt = int(str(body[4]))
                             temp = int(str(body[5]))
                             press = int(body[6:10].decode('utf-8'))
                             hum = int(str(body[11]))
                             co = float(body[12:].decode('utf-8'))
+                            Data.insert(
+                                timestamp=time,
+                                batt_level=batt,
+                                temp=temp,
+                                press=press,
+                                hum=hum,
+                                co=co).execute()
                         if(protocol == "3"):
                             continue
                         if(protocol == "4"):
