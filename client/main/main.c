@@ -241,12 +241,14 @@ char* config_conn(socket) {
 }
 
 void send_data(socket, conf_data) {
+    char* send_ack = "PACKAGE";
+    send(socket, send_ack, strlen(send_ack), 0);
     // Chequeo de protocolo (y capa de transporte a futuro), para luego enviar datos
     if (strcmp(conf_data, "00") == 0) {
         ESP_LOGI(TAG,"Usando protocolo 0\n");
         // protocolo 0
         char* pack = create_packet_0();
-        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
         send(socket, pack, strlen(pack), 0);
         
     }
@@ -254,14 +256,14 @@ void send_data(socket, conf_data) {
         ESP_LOGI(TAG,"Usando protocolo 1\n");
         // protocolo 1
         char* pack = create_packet_1();
-        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
         send(socket, pack, strlen(pack), 0);
     }
     else if (strcmp(conf_data, "20") == 0) {
         ESP_LOGI(TAG,"Usando protocolo 2\n");
         // protocolo 2
         char* pack = create_packet_2();
-        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
         send(socket, pack, strlen(pack), 0);
         
     }
@@ -269,14 +271,14 @@ void send_data(socket, conf_data) {
         ESP_LOGI(TAG,"Usando protocolo 3\n");
         // protocolo 3
         char* pack = create_packet_3();
-        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
         send(socket, pack, strlen(pack), 0);
     }
     else if (strcmp(conf_data, "40") == 0) {
         ESP_LOGI(TAG,"Usando protocolo 4\n");
         // protocolo 4
         char* pack = create_packet_4();
-        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
         send(socket, pack, strlen(pack), 0);
     }
     else {
