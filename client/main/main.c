@@ -122,23 +122,69 @@ char* create_packet_0() {
     // Header
     char* header = strcat(mac, id);
     // Header + Protocol + Transport + Length
-    char* header = strcat(header, "0016");
+    header = strcat(header, "0016");
     // Done
     
     // Body
     // timestamp
-    char* timestamp = "0000";
+    char* body = "0000";
 
     //Join message
-    char* packet = strcat(header, timestamp);
+    char* packet = strcat(header, body);
     return packet;
 }
 
 char* create_packet_1() {
+    // Get MAC Adress
+    char* mac = "0";
+    // Random id
+    char* id = "0";
+    // Header
+    char* header = strcat(mac, id);
+    // Header + Protocol + Transport + Length
+    header = strcat(header, "0017");
+    // Done
+    
+    // Body
+    // timestamp
+    char* body = "0000";
+    // batt level
+    body = strcat(body, "0");
+
+    //Join message
+    char* packet = strcat(header, body);
+    return packet;
 
 }
 
 char* create_packet_2() {
+    // Get MAC Adress
+    char* mac = "0";
+    // Random id
+    char* id = "0";
+    // Header
+    char* header = strcat(mac, id);
+    // Header + Protocol + Transport + Length
+    char* header = strcat(header, "0027");
+    // Done
+    
+    // Body
+    // timestamp
+    char* body = "0000";
+    // batt level
+    body = strcat(body, "0");
+    // temp
+    body = strcat(body, "0");
+    // press
+    body = strcat(body, "0");
+    // hum
+    body = strcat(body, "0");
+    // co
+    body = strcat(body, "0");
+
+    //Join message
+    char* packet = strcat(header, body);
+    return packet;
 
 }
 
