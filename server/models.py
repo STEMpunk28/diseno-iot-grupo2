@@ -1,4 +1,4 @@
-from peewee import Model, PostgresqlDatabase, CharField
+from playhouse.postgres_ext import *
 
 # Tabla con los tipos de fields que hay en peewee
 # https://docs.peewee-orm.com/en/latest/peewee/models.html#fields
@@ -11,19 +11,51 @@ db_config = {
     'password': 'postgres',
     'database': 'iot_db'
 }
-db = PostgresqlDatabase(**db_config)
+db = PostgresqlExtDatabase(**db_config)
 
 class BaseModel(Model):
     class Meta:
         database = db
 
 # Se definen los modelos        
-class User(BaseModel):
-    username = CharField()
+class Dev(BaseModel):
+    device_id = IdentityField()
+    mac_adress = BigIntegerField()
 
-class User(BaseModel):
-    username = CharField()
+class Log(BaseModel):
+    msg_id = IdentityField()
+    packet_id = IntegerField()
+    device_mac = ForeignKeyField(Dev)
+    protocol_id = IntegerField()
+    transport_layer = IntegerField()
+    length = IntegerField()
 
+class Data(BaseModel):
+    data_id = IdentityField()
+    packet_id = ForeignKeyField(Log)
+    timestamp = IntegerField()
+    batt_level = IntegerField()
+    temp = IntegerField()
+    press = IntegerField()
+    hum = IntegerField()
+    co = FloatField()
+    amp_x = FloatField()
+    amp_y = FloatField()
+    amp_z = FloatField()
+    fre_x = FloatField()
+    fre_y = FloatField()
+    fre_z = FloatField()
+    rms = FloatField()
+    acc_x = ArrayField(FloatField)
+    acc_y = ArrayField(FloatField)
+    acc_z = ArrayField(FloatField)
+    gyr_x = ArrayField(FloatField)
+    gyr_y = ArrayField(FloatField)
+    gyr_z = ArrayField(FloatField)
+
+class Conf(BaseModel):
+    protocol = IntegerField()
+    transport_layer = IntegerField()
 
 # Se crean las tablas
-db.create_tables([User])
+db.create_tables([Dev, Log, Data, Conf])
