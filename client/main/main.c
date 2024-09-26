@@ -115,7 +115,7 @@ void nvs_init() {
 }
 
 
-void socket_tcp(){
+int socket_tcp(){
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(SERVER_PORT);
@@ -135,7 +135,7 @@ void socket_tcp(){
         return;
     }
 
-    return sock
+    return sock;
 }
 
 void close_tcp(socket) {
@@ -143,60 +143,78 @@ void close_tcp(socket) {
     close(sock);
 }
 
-void config_conn(socket) {
+char* config_conn(socket) {
     // Pedir protocolo
     char* config = "CONFIG";
-    send(sock, config, strlen(config), 0);
+    send(socket, config, strlen(config), 0);
 
     // Recibir respuesta
     char rx_buffer[128];
-    int rx_len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
+    int rx_len = recv(socket, rx_buffer, sizeof(rx_buffer) - 1, 0);
     if (rx_len < 0) {
         ESP_LOGE(TAG, "Error al recibir datos");
         return;
     }
     ESP_LOGI(TAG, "Datos recibidos: %s", rx_buffer);
 
-    return rx_buffer
+    return rx_buffer;
+}
+
+void send_data(socket, conf_data) {
+    // Chequeo de protocolo (y capa de transporte a futuro), para luego enviar datos
+    if (strcmp(conf_data, "00") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 0\n");
+        // protocolo 0
+        char* pack = create_packet_0();
+        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        send(socket, pack, strlen(pack), 0);
+        
+    }
+    else if (strcmp(conf_data, "10") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 1\n");
+        // protocolo 1
+        char* pack = create_packet_1();
+        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        send(socket, pack, strlen(pack), 0);
+    }
+    else if (strcmp(conf_data, "20") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 2\n");
+        // protocolo 2
+        char* pack = create_packet_2();
+        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        send(socket, pack, strlen(pack), 0);
+        
+    }
+    else if (strcmp(conf_data, "30") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 3\n");
+        // protocolo 3
+        char* pack = create_packet_3();
+        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        send(socket, pack, strlen(pack), 0);
+    }
+    else if (strcmp(conf_data, "40") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 4\n");
+        // protocolo 4
+        char* pack = create_packet_4();
+        ESP_LOGI(TAG, "Paquete a enviar recibidos: %s", pack);
+        send(socket, pack, strlen(pack), 0);
+    }
+    else {
+        ESP_LOGI(TAG,"Mensaje invalido\n");
+        //error
+        close_tcp(socket);
+    }
+    
 }
 
 
 void app_main(void){
+    //añadir loop de SLEEP
     nvs_init();
     wifi_init_sta(WIFI_SSID, WIFI_PASSWORD);
     ESP_LOGI(TAG,"Conectado a WiFi!\n");
     int sock = socket_tcp();
-    char conf[128] = config_conn(sock)
-    
-    // Chequeo de protocolo (y capa de transporte a futuro) recibido
-    if (strcmp(rx_buffer, "00") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 0\n");
-        // protocolo 0
-        send_data(0)
-    }
-    if (strcmp(rx_buffer, "10") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 1\n");
-        // protocolo 1
-        send_data(1)
-        
-    }
-    if (strcmp(rx_buffer, "20") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 2\n");
-        // protocolo 2
-        send_data(2)
-        
-    }
-    if (strcmp(rx_buffer, "30") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 3\n");
-        // protocolo 3
-        send_data(3)
-        
-    }
-    if (strcmp(rx_buffer, "40") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 4\n");
-        // protocolo 4
-        send_data(4)
-    }
-
+    char* conf_data = config_conn(sock);
+    send_data(sock, conf_data)
     // ESP_DEEP_SLEEP
 }
