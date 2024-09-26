@@ -25,7 +25,7 @@ class Dev(BaseModel):
 class Log(BaseModel):
     msg_id = IdentityField()
     packet_id = IntegerField()
-    device_mac = ForeignKeyField(Dev)
+    device_id = ForeignKeyField(Dev)
     protocol_id = IntegerField()
     transport_layer = IntegerField()
     length = IntegerField()
