@@ -114,6 +114,40 @@ void nvs_init() {
     ESP_ERROR_CHECK(ret);
 }
 
+char* create_packet_0() {
+    // Get MAC Adress
+    char* mac = "0";
+    // Random id
+    char* id = "0";
+    // Header
+    char* header = strcat(mac, id);
+    // Header + Protocol + Transport + Length
+    char* header = strcat(header, "0016");
+    // Done
+    
+    // Body
+    // timestamp
+    char* timestamp = "0000";
+
+    //Join message
+    char* packet = strcat(header, timestamp);
+    return packet;
+}
+
+char* create_packet_1() {
+
+}
+
+char* create_packet_2() {
+
+}
+
+//TBD
+char* create_packet_3() {}
+
+//TBD
+char* create_packet_4() {}
+
 
 int socket_tcp(){
     struct sockaddr_in server_addr;
