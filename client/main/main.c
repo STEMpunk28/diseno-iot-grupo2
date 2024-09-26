@@ -135,8 +135,17 @@ void socket_tcp(){
         return;
     }
 
+    return sock
+}
+
+void close_tcp(socket) {
+    // Cerrar el socket
+    close(sock);
+}
+
+void config_conn(socket) {
     // Pedir protocolo
-    char* config = "SOLICIT CONFIG"
+    char* config = "CONFIG";
     send(sock, config, strlen(config), 0);
 
     // Recibir respuesta
@@ -148,23 +157,46 @@ void socket_tcp(){
     }
     ESP_LOGI(TAG, "Datos recibidos: %s", rx_buffer);
 
-    // Chequeo de protocolo (y capa de transporte a futuro) recibido
-
-    // Creacion de paquetes (subfunciones)
-
-    // Envio de paquetes
-
-    ESP_DEEP_SLEEP
-    
-    // Cerrar el socket
-    close(sock);
+    return rx_buffer
 }
-
 
 
 void app_main(void){
     nvs_init();
     wifi_init_sta(WIFI_SSID, WIFI_PASSWORD);
     ESP_LOGI(TAG,"Conectado a WiFi!\n");
-    socket_tcp();
+    int sock = socket_tcp();
+    char conf[128] = config_conn(sock)
+    
+    // Chequeo de protocolo (y capa de transporte a futuro) recibido
+    if (strcmp(rx_buffer, "00") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 0\n");
+        // protocolo 0
+        send_data(0)
+    }
+    if (strcmp(rx_buffer, "10") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 1\n");
+        // protocolo 1
+        send_data(1)
+        
+    }
+    if (strcmp(rx_buffer, "20") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 2\n");
+        // protocolo 2
+        send_data(2)
+        
+    }
+    if (strcmp(rx_buffer, "30") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 3\n");
+        // protocolo 3
+        send_data(3)
+        
+    }
+    if (strcmp(rx_buffer, "40") == 0) {
+        ESP_LOGI(TAG,"Usando protocolo 4\n");
+        // protocolo 4
+        send_data(4)
+    }
+
+    // ESP_DEEP_SLEEP
 }
