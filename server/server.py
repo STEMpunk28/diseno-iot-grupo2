@@ -25,7 +25,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         conn, addr = s.accept()
         with conn:
             print('Conectado por', addr)
-            while True:
+            reception_over = True
+            while reception_over:
                 data = conn.recv(1024)
                 if data:
                     print(data)
@@ -61,7 +62,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 Dev.insert(mac_adress=mac_seq).execute()
                             dev_id = (Dev.select(Dev.device_id).where(Dev.mac_adress == mac_seq))
                             print(dev_id)
-                            Log.insert(
+                            insert_id = Log.insert(
                                 msg_id = msg,
                                 device_id=dev_id,
                                 protocol_id=protocol,
@@ -69,30 +70,36 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 length=length).execute()
 
                             # Acording to protocol, separate body values and put on db
+                            pack_id = insert_id #(Log.select(Log.packet_id).where(Log.msg_id == msg))
+                            print(f'PACKET_ID: {pack_id}')
                             # All protocols send timestamp in the first 4 bytes
                             timestamp = struct.unpack('I',body[0:4])[0]
                             print(f'TIMESTAMP: {timestamp}')
 
 
 
-                            if(protocol == "0"):
-                                time = int(body.decode('utf-8'))
-                                Data.insert(timestamp=time).execute()
-                            if(protocol == "1"):
-                                time = int(body[:4].decode('utf-8'))
-                                batt = int(str(body[4]))
+                            if(protocol == 0):
+                                Data.insert(packet_id=pack_id,
+                                            timestamp=timestamp).execute()
+                            if(protocol == 1):
+                                batt = body[4]
+                                print(f'BATT: {batt}')
                                 Data.insert(
-                                    timestamp=time,
+                                    packet_id=pack_id,
+                                    timestamp=timestamp,
                                     batt_level=batt).execute()
-                            if(protocol == "2"):
-                                time = int(body[:4].decode('utf-8'))
-                                batt = int(str(body[4]))
-                                temp = int(str(body[5]))
-                                press = int(body[6:10].decode('utf-8'))
-                                hum = int(str(body[11]))
-                                co = float(body[12:].decode('utf-8'))
+                            if(protocol == 2):
+                                batt = body[4]
+                                temp = body[5]
+                                press = struct.unpack('I',body[6:10])[0]
+                                hum = body[10]
+                                print([x for x in body[11:]])
+                                print(f'BATT: {batt} TEMP:  {temp} PRESS:{press} HUM:{hum}')
+                                co = struct.unpack('f',body[11:])[0]
+                                print(f'BATT: {batt} TEMP:  {temp} PRESS:{press} HUM:{hum} CO:{co}')
                                 Data.insert(
-                                    timestamp=time,
+                                    packet_id=pack_id,
+                                    timestamp=timestamp,
                                     batt_level=batt,
                                     temp=temp,
                                     press=press,
@@ -102,4 +109,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 continue
                             if(protocol == "4"):
                                 continue
+                            reception_over = False
 

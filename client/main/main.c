@@ -7,6 +7,7 @@
 #include "esp_system.h"
 #include "esp_mac.h"
 #include "esp_sleep.h"
+#include "esp_random.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -166,6 +167,8 @@ char* create_packet(char protocol) {
     transport_layer = 0;
     memcpy(&buffer[pointer], &transport_layer, sizeof(transport_layer));
     pointer+= sizeof(transport_layer);
+
+    // length
     memcpy(&buffer[pointer], &packet_size, sizeof(packet_size));
     pointer+= sizeof(packet_size);
 
@@ -174,23 +177,45 @@ char* create_packet(char protocol) {
     // timestamp
     if (protocol >= 0) { // P0-P4 envian timestamp
         unsigned int timestamp = time(NULL);
-        memcpy(&buffer[pointer], &timestamp, sizeof(timestamp));
-        pointer += sizeof(timestamp);   
+        memcpy(&buffer[pointer], &timestamp, 4);
+        pointer += 4;   
     }
     // battery (batt_level)
-    // if (protocol >= 1) { // P1-P4 envían batt_level
-    //     int random_num = rand_r()
-        
-    // }
+    if (protocol >= 1) { // P1-P4 envían batt_level
+        unsigned int random_num = esp_random() % 101;
+        ESP_LOGI("PKT","Battery Level: %i", random_num);
+        memcpy(&buffer[pointer], &random_num, 1);
+        pointer += 1;
+    }
+    
+    // temp, pres, hum, co
+    if (protocol >= 2) { // P2-P4 envían temp, pres, hum, co
+        unsigned int random_temp  = 5 + (esp_random() % 26);
+        unsigned int random_pres  = 1000 + (esp_random() % 201);
+        unsigned int random_hum = 30 +  (esp_random() % 51);
+        float random_co = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+
+        memcpy(&buffer[pointer], &random_temp, 1);
+        pointer+=1;
+        memcpy(&buffer[pointer], &random_pres, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_hum, 1);
+        pointer+=1;
+        memcpy(&buffer[pointer], &random_co, 4);
+        pointer+=4;
+    
+    }
 
 
 
-    // ESP_LOGI("PKT", "PACKET SIZE:  %hu", packet_size);
-    // ESP_LOGI("PKT", "Buffer creado");
+
+    ESP_LOGI("PKT", "PACKET SIZE:  %hu", packet_size);
+    ESP_LOGI("PKT", "Buffer creado");
 
     return buffer;
 }
 
+/* === antiguos ===
 // char* create_packet_0() {
 //     // Get MAC Adress
 //     char* mac = "0";
@@ -279,6 +304,7 @@ char* create_packet(char protocol) {
 
 //TBD
 // char* create_packet_4() {}
+*/
 
 
 int socket_tcp(){
@@ -351,33 +377,28 @@ void send_data(int socket, char* conf_data) {
     char conf_flag[3] = {conf_data[0], conf_data[1], '\0'};
 
     ESP_LOGI(TAG, "Conf_Flag: %s", conf_flag);
-    if (strcmp(conf_flag, "00") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 0\n");
-        // protocolo 0
-        char* pack = create_packet(0);
-        // print_bytes(pack,16);
-        
-        unsigned short packet_size;
-        memcpy(&packet_size, &pack[10], 2);
-        ESP_LOGI(TAG, "packet_size %i", packet_size);
 
-        // ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
-        send(socket, pack, packet_size, 0);
-        // ESP_LOGI(TAG, "Paquete enviado: %s", pack);
-        free(pack);
-        
-    }
-    else if (strcmp(conf_flag, "10") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 1\n");
-        // protocolo 1
-        char* pack = create_packet(1);
-        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
-        send(socket, pack, strlen(pack), 0);
-    }
-    else {
-        //error
-        ESP_LOGI(TAG,"Mensaje invalido\n");
-    }
+    int protocol = 0;
+    if (strcmp(conf_flag, "00") == 0) protocol=0;
+    if (strcmp(conf_flag, "10") == 0) protocol=1;
+    if (strcmp(conf_flag, "20") == 0) protocol=2;
+    if (strcmp(conf_flag, "30") == 0) protocol=3;
+    if (strcmp(conf_flag, "40") == 0) protocol=4;
+
+
+
+    ESP_LOGI(TAG,"Usando protocolo %i\n", protocol);
+    char* pack = create_packet(protocol);
+    unsigned short packet_size;
+    memcpy(&packet_size, &pack[10], 2);
+    ESP_LOGI(TAG, "packet_size %i", packet_size);
+    send(socket, pack, packet_size, 0);
+    free(pack);
+
+    // else {
+    //     //error
+    //     ESP_LOGI(TAG,"Mensaje invalido\n");
+    // }
     
 }
 
@@ -386,6 +407,10 @@ void send_data(int socket, char* conf_data) {
 void app_main(void){
     //añadir loop de SLEEP
     nvs_init();
+
+    ESP_LOGI(TAG, "float random %f",  (float) esp_random()/(float) UINT_MAX);
+
+        
     wifi_init_sta(WIFI_SSID, WIFI_PASSWORD);
     ESP_LOGI(TAG,"Conectado a WiFi!\n");
     int sock = socket_tcp();
