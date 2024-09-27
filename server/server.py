@@ -51,7 +51,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                                 # Separate header values and put in db
                                 mac = header[:6]
-                                mac_seq = ''.join([str(x) for x in mac])
+                                
+                                # Sacado de: https://stackoverflow.com/questions/4959741/python-print-mac-address-out-of-6-byte-string
+                                mac_seq = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",mac)
 
                                 msg = struct.unpack('H', header[6:8])[0] # msgID is 2 bytes unsigned
                                 protocol = header[8] # struct.unpack('B',header[8])

@@ -20,7 +20,7 @@ class BaseModel(Model):
 # Se definen los modelos        
 class Dev(BaseModel):
     device_id = IdentityField()
-    mac_adress = BigIntegerField()
+    mac_adress = CharField()
 
 class Log(BaseModel):
     msg_id = IntegerField()
@@ -54,8 +54,8 @@ class Data(BaseModel):
     gyr_z = ArrayField(FloatField, null = True)
 
 class Conf(BaseModel):
-    protocol = IntegerField()
-    transport_layer = IntegerField()
+    protocol = IntegerField(default = 0)
+    transport_layer = IntegerField(default = 0)
 
 # Se crean las tablas
 db.create_tables([Dev, Log, Data, Conf])

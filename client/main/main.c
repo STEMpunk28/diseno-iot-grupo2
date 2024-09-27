@@ -150,13 +150,19 @@ char* create_packet(char protocol) {
     // Device Mac
     int pointer = 0;
     // PENDIENTE: cambiar esto por la mac real
-    char mac[6] = {7,6,5,4,3,4};
-    memcpy(&buffer[pointer], &mac, 6);
+
+    uint8_t baseMac[6];
+    // Get MAC address of the WiFi station interface
+    esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
+
+    // char mac[6] = {7,6,5,4,3,4};
+    memcpy(&buffer[pointer], &baseMac, 6);
     pointer += 6;
+    
     // Msg ID
-    short msgID = 259;
-    memcpy(&buffer[pointer], &msgID, sizeof(msgID));
-    pointer += sizeof(msgID);
+    unsigned int msg_ID = esp_random();
+    memcpy(&buffer[pointer], &msg_ID, 2);
+    pointer += 2;
 
     // Protocol ID
     memcpy(&buffer[pointer], &protocol, sizeof(protocol));
@@ -215,97 +221,6 @@ char* create_packet(char protocol) {
     return buffer;
 }
 
-/* === antiguos ===
-// char* create_packet_0() {
-//     // Get MAC Adress
-//     char* mac = "0";
-//     // Random id
-//     char* id = "0";
-//     // Header
-//     char* header = strcat(mac, id);
-//     // Header + Protocol + Transport + Length
-//     header = strcat(header, "0016");
-//     // Done
-    
-//     // Body
-//     // timestamp
-//     char* body = "0000";
-
-//     //Join message
-//     char* packet = strcat(header, body);
-//     return packet;
-// }
-
-// char* create_packet_1() {
-//     // Get MAC Adress
-//     char* mac = "0";
-//     // Random id
-//     char* id = "0";
-//     // Protocol Transport Length
-//     char* protocol_transport_length = "0017";
-//     // Calculate header size to avoid overflowing memwrite
-//     size_t header_size = strlen(mac) + strlen(id) + strlen(protocol_transport_length) + 1; // ends on \0 ?
-    
-//     // Header
-//     char* header = (char*) malloc(header_size);
-//     strcpy(header,mac);
-//     strcat(header,id);
-//     strcat(header,protocol_transport_length);
-//     // Header + Protocol + Transport + Length
-//     // char* header = strcat(mac, id);
-//     // header = strcat(header, "0017");
-//     // Done
-    
-//     // Body
-//     // timestamp
-//     char* body = "0000";
-//     // batt level
-//     body = strcat(body, "0");
-
-//     //Join message
-//     char* packet = strcat(header, body);
-//     return packet;
-
-// }
-
-// char* create_packet_2() {
-//     // Get MAC Adress
-//     char* mac = "0";
-//     // Random id
-//     char* id = "0";
-//     // Header
-//     char* header = strcat(mac, id);
-//     // Header + Protocol + Transport + Length
-//     header = strcat(header, "0027");
-//     // Done
-    
-//     // Body
-//     // timestamp
-//     char* body = "0000";
-//     // batt level
-//     body = strcat(body, "0");
-//     // temp
-//     body = strcat(body, "0");
-//     // press
-//     body = strcat(body, "0");
-//     // hum
-//     body = strcat(body, "0");
-//     // co
-//     body = strcat(body, "0");
-
-//     //Join message
-//     char* packet = strcat(header, body);
-//     return packet;
-
-// }
-
-//TBD
-// char* create_packet_3() {}
-
-//TBD
-// char* create_packet_4() {}
-*/
-
 
 int socket_tcp(){
     struct sockaddr_in server_addr;
@@ -341,13 +256,12 @@ char* config_conn(int socket, char* ptr_buffer) {
     send(socket, config, strlen(config), 0);
 
     // Recibir respuesta
-    // char rx_buffer[128];
     int rx_len = recv(socket, ptr_buffer, sizeof(ptr_buffer) - 1, 0);
     if (rx_len < 0) {
         ESP_LOGE(TAG, "Error al recibir datos");
         exit(1);
     }
-    ESP_LOGI(TAG, "Datos recibidos: %s", ptr_buffer);
+    ESP_LOGI(TAG, "Configuracion recibida: %s", ptr_buffer);
 
     return ptr_buffer;
 }
@@ -365,7 +279,6 @@ void print_bytes(char*  buffer, int size) {
 void send_data(int socket, char* conf_data) {
     char* send_ack = "PACKAGE";
     send(socket, send_ack, strlen(send_ack), 0);
-    // ESP_LOGI(TAG, "Recibido conf_data\n");
     ESP_LOGI(TAG, "Conf_Data: %s\n", conf_data);
     ESP_LOGI(TAG, "%c", conf_data[0]);
     ESP_LOGI(TAG, "%c", conf_data[1]);
@@ -394,18 +307,12 @@ void send_data(int socket, char* conf_data) {
     ESP_LOGI(TAG, "packet_size %i", packet_size);
     send(socket, pack, packet_size, 0);
     free(pack);
-
-    // else {
-    //     //error
-    //     ESP_LOGI(TAG,"Mensaje invalido\n");
-    // }
     
 }
 
 
 
 void app_main(void){
-    //añadir loop de SLEEP
     nvs_init();
 
     ESP_LOGI(TAG, "float random %f",  (float) esp_random()/(float) UINT_MAX);
