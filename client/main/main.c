@@ -5,19 +5,23 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_mac.h"
+#include "esp_sleep.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "nvs_flash.h"
+#include "time.h"
+#include <stdlib.h>
 #include "lwip/sockets.h" // Para sockets
 
 //Credenciales de WiFi
 
-#define WIFI_SSID "SSID"
-#define WIFI_PASSWORD "PASSOWRD"
-#define SERVER_IP     "192.168.0.1" // IP del servidor
+#define WIFI_SSID "Melisso-ont-2.4g"
+#define WIFI_PASSWORD "7dgzqnqNmjw5"
+#define SERVER_IP     "192.168.100.203" // IP del servidor
 #define SERVER_PORT   1234
 
 // Variables de WiFi
@@ -114,85 +118,167 @@ void nvs_init() {
     ESP_ERROR_CHECK(ret);
 }
 
-char* create_packet_0() {
-    // Get MAC Adress
-    char* mac = "0";
-    // Random id
-    char* id = "0";
-    // Header
-    char* header = strcat(mac, id);
-    // Header + Protocol + Transport + Length
-    header = strcat(header, "0016");
-    // Done
-    
-    // Body
-    // timestamp
-    char* body = "0000";
+char* create_packet(char protocol) {
+    char transport_layer;
 
-    //Join message
-    char* packet = strcat(header, body);
-    return packet;
+    // 
+    unsigned short packet_size;
+
+    switch(protocol) {
+        case 0:
+            packet_size = 16;
+            break;
+        case 1:
+            packet_size = 17;
+            break;
+        case 2:
+            packet_size = 27;
+            break;
+        case 3:
+            packet_size = 55;
+            break;
+        case 4:
+            packet_size = 48027;
+            break;
+    }
+
+    char* buffer = malloc(packet_size);
+
+
+    // HEADER 
+    // Device Mac
+    int pointer = 0;
+    // PENDIENTE: cambiar esto por la mac real
+    char mac[6] = {7,6,5,4,3,4};
+    memcpy(&buffer[pointer], &mac, 6);
+    pointer += 6;
+    // Msg ID
+    short msgID = 259;
+    memcpy(&buffer[pointer], &msgID, sizeof(msgID));
+    pointer += sizeof(msgID);
+
+    // Protocol ID
+    memcpy(&buffer[pointer], &protocol, sizeof(protocol));
+    pointer += sizeof(protocol);
+    // strcpy(protocol_id, ((char*) protocol));
+
+    //transport layer (wip)
+    transport_layer = 0;
+    memcpy(&buffer[pointer], &transport_layer, sizeof(transport_layer));
+    pointer+= sizeof(transport_layer);
+    memcpy(&buffer[pointer], &packet_size, sizeof(packet_size));
+    pointer+= sizeof(packet_size);
+
+    // BODY
+
+    // timestamp
+    if (protocol >= 0) { // P0-P4 envian timestamp
+        unsigned int timestamp = time(NULL);
+        memcpy(&buffer[pointer], &timestamp, sizeof(timestamp));
+        pointer += sizeof(timestamp);   
+    }
+    // battery (batt_level)
+    // if (protocol >= 1) { // P1-P4 envían batt_level
+    //     int random_num = rand_r()
+        
+    // }
+
+
+
+    // ESP_LOGI("PKT", "PACKET SIZE:  %hu", packet_size);
+    // ESP_LOGI("PKT", "Buffer creado");
+
+    return buffer;
 }
 
-char* create_packet_1() {
-    // Get MAC Adress
-    char* mac = "0";
-    // Random id
-    char* id = "0";
-    // Header
-    char* header = strcat(mac, id);
-    // Header + Protocol + Transport + Length
-    header = strcat(header, "0017");
-    // Done
+// char* create_packet_0() {
+//     // Get MAC Adress
+//     char* mac = "0";
+//     // Random id
+//     char* id = "0";
+//     // Header
+//     char* header = strcat(mac, id);
+//     // Header + Protocol + Transport + Length
+//     header = strcat(header, "0016");
+//     // Done
     
-    // Body
-    // timestamp
-    char* body = "0000";
-    // batt level
-    body = strcat(body, "0");
+//     // Body
+//     // timestamp
+//     char* body = "0000";
 
-    //Join message
-    char* packet = strcat(header, body);
-    return packet;
+//     //Join message
+//     char* packet = strcat(header, body);
+//     return packet;
+// }
 
-}
-
-char* create_packet_2() {
-    // Get MAC Adress
-    char* mac = "0";
-    // Random id
-    char* id = "0";
-    // Header
-    char* header = strcat(mac, id);
-    // Header + Protocol + Transport + Length
-    char* header = strcat(header, "0027");
-    // Done
+// char* create_packet_1() {
+//     // Get MAC Adress
+//     char* mac = "0";
+//     // Random id
+//     char* id = "0";
+//     // Protocol Transport Length
+//     char* protocol_transport_length = "0017";
+//     // Calculate header size to avoid overflowing memwrite
+//     size_t header_size = strlen(mac) + strlen(id) + strlen(protocol_transport_length) + 1; // ends on \0 ?
     
-    // Body
-    // timestamp
-    char* body = "0000";
-    // batt level
-    body = strcat(body, "0");
-    // temp
-    body = strcat(body, "0");
-    // press
-    body = strcat(body, "0");
-    // hum
-    body = strcat(body, "0");
-    // co
-    body = strcat(body, "0");
+//     // Header
+//     char* header = (char*) malloc(header_size);
+//     strcpy(header,mac);
+//     strcat(header,id);
+//     strcat(header,protocol_transport_length);
+//     // Header + Protocol + Transport + Length
+//     // char* header = strcat(mac, id);
+//     // header = strcat(header, "0017");
+//     // Done
+    
+//     // Body
+//     // timestamp
+//     char* body = "0000";
+//     // batt level
+//     body = strcat(body, "0");
 
-    //Join message
-    char* packet = strcat(header, body);
-    return packet;
+//     //Join message
+//     char* packet = strcat(header, body);
+//     return packet;
 
-}
+// }
+
+// char* create_packet_2() {
+//     // Get MAC Adress
+//     char* mac = "0";
+//     // Random id
+//     char* id = "0";
+//     // Header
+//     char* header = strcat(mac, id);
+//     // Header + Protocol + Transport + Length
+//     header = strcat(header, "0027");
+//     // Done
+    
+//     // Body
+//     // timestamp
+//     char* body = "0000";
+//     // batt level
+//     body = strcat(body, "0");
+//     // temp
+//     body = strcat(body, "0");
+//     // press
+//     body = strcat(body, "0");
+//     // hum
+//     body = strcat(body, "0");
+//     // co
+//     body = strcat(body, "0");
+
+//     //Join message
+//     char* packet = strcat(header, body);
+//     return packet;
+
+// }
 
 //TBD
-char* create_packet_3() {}
+// char* create_packet_3() {}
 
 //TBD
-char* create_packet_4() {}
+// char* create_packet_4() {}
 
 
 int socket_tcp(){
@@ -205,79 +291,86 @@ int socket_tcp(){
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock < 0) {
         ESP_LOGE(TAG, "Error al crear el socket");
-        return;
+        return 1;
     }
 
     // Conectar al servidor
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0) {
         ESP_LOGE(TAG, "Error al conectar");
         close(sock);
-        return;
+        return 1;
     }
 
     return sock;
 }
 
-void close_tcp(socket) {
+void close_tcp(int socket) {
     // Cerrar el socket
-    close(sock);
+    close(socket);
 }
 
-char* config_conn(socket) {
+char* config_conn(int socket, char* ptr_buffer) {
     // Pedir protocolo
     char* config = "CONFIG";
     send(socket, config, strlen(config), 0);
 
     // Recibir respuesta
-    char rx_buffer[128];
-    int rx_len = recv(socket, rx_buffer, sizeof(rx_buffer) - 1, 0);
+    // char rx_buffer[128];
+    int rx_len = recv(socket, ptr_buffer, sizeof(ptr_buffer) - 1, 0);
     if (rx_len < 0) {
         ESP_LOGE(TAG, "Error al recibir datos");
-        return;
+        exit(1);
     }
-    ESP_LOGI(TAG, "Datos recibidos: %s", rx_buffer);
+    ESP_LOGI(TAG, "Datos recibidos: %s", ptr_buffer);
 
-    return rx_buffer;
+    return ptr_buffer;
 }
 
-void send_data(socket, conf_data) {
+void print_bytes(char*  buffer, int size) {
+    ESP_LOGI("DEBUG","=== BUFFER PRINTING ===");
+    for (int i=0; i<size;i++) {
+
+        ESP_LOGI("DEBUG", "[%i] %c", i, buffer[i]);
+    }
+    ESP_LOGI("DEBUG", "=== BUFFER END ===");
+}
+
+
+void send_data(int socket, char* conf_data) {
     char* send_ack = "PACKAGE";
     send(socket, send_ack, strlen(send_ack), 0);
+    // ESP_LOGI(TAG, "Recibido conf_data\n");
+    ESP_LOGI(TAG, "Conf_Data: %s\n", conf_data);
+    ESP_LOGI(TAG, "%c", conf_data[0]);
+    ESP_LOGI(TAG, "%c", conf_data[1]);
+    ESP_LOGI(TAG, "%c", conf_data[2]);
+
+
     // Chequeo de protocolo (y capa de transporte a futuro), para luego enviar datos
-    if (strcmp(conf_data, "00") == 0) {
+    // Como el mensaje enviado es un string codificado en UTF-8 es necesario truncar los primeros dos carácteres
+    char conf_flag[3] = {conf_data[0], conf_data[1], '\0'};
+
+    ESP_LOGI(TAG, "Conf_Flag: %s", conf_flag);
+    if (strcmp(conf_flag, "00") == 0) {
         ESP_LOGI(TAG,"Usando protocolo 0\n");
         // protocolo 0
-        char* pack = create_packet_0();
-        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
-        send(socket, pack, strlen(pack), 0);
+        char* pack = create_packet(0);
+        // print_bytes(pack,16);
+        
+        unsigned short packet_size;
+        memcpy(&packet_size, &pack[10], 2);
+        ESP_LOGI(TAG, "packet_size %i", packet_size);
+
+        // ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
+        send(socket, pack, packet_size, 0);
+        // ESP_LOGI(TAG, "Paquete enviado: %s", pack);
+        free(pack);
         
     }
-    else if (strcmp(conf_data, "10") == 0) {
+    else if (strcmp(conf_flag, "10") == 0) {
         ESP_LOGI(TAG,"Usando protocolo 1\n");
         // protocolo 1
-        char* pack = create_packet_1();
-        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
-        send(socket, pack, strlen(pack), 0);
-    }
-    else if (strcmp(conf_data, "20") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 2\n");
-        // protocolo 2
-        char* pack = create_packet_2();
-        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
-        send(socket, pack, strlen(pack), 0);
-        
-    }
-    else if (strcmp(conf_data, "30") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 3\n");
-        // protocolo 3
-        char* pack = create_packet_3();
-        ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
-        send(socket, pack, strlen(pack), 0);
-    }
-    else if (strcmp(conf_data, "40") == 0) {
-        ESP_LOGI(TAG,"Usando protocolo 4\n");
-        // protocolo 4
-        char* pack = create_packet_4();
+        char* pack = create_packet(1);
         ESP_LOGI(TAG, "Paquete a enviar: %s", pack);
         send(socket, pack, strlen(pack), 0);
     }
@@ -285,8 +378,9 @@ void send_data(socket, conf_data) {
         //error
         ESP_LOGI(TAG,"Mensaje invalido\n");
     }
-    close_tcp(socket);
+    
 }
+
 
 
 void app_main(void){
@@ -296,10 +390,15 @@ void app_main(void){
     ESP_LOGI(TAG,"Conectado a WiFi!\n");
     int sock = socket_tcp();
     ESP_LOGI(TAG,"Conectado al socket\n");
-    char* conf_data = config_conn(sock);
+    char conf_data[128];
+    config_conn(sock, conf_data);
     ESP_LOGI(TAG,"Configuracion lista, enviando datos\n");
+    ESP_LOGI(TAG,"DEBUG\n");
+    ESP_LOGI(TAG,"Configuración: %s\n", conf_data);
+    ESP_LOGI(TAG,"DEBUG 2\n");
     send_data(sock, conf_data);
     ESP_LOGI(TAG,"A mimir\n");
+    close_tcp(sock);
     //Deep Sleep for one second
     esp_deep_sleep(1000000);
 }
