@@ -20,9 +20,9 @@
 
 //Credenciales de WiFi
 
-#define WIFI_SSID "Melisso-ont-2.4g"
-#define WIFI_PASSWORD "7dgzqnqNmjw5"
-#define SERVER_IP     "192.168.100.203" // IP del servidor
+#define WIFI_SSID "RASPI"
+#define WIFI_PASSWORD "123456789"
+#define SERVER_IP     "10.20.1.1" // IP del servidor
 #define SERVER_PORT   1234
 
 // Variables de WiFi

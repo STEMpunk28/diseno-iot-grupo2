@@ -23,6 +23,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     while True:
         conn, addr = s.accept()
+        #Add timeout to deal with packet loss
+        conn.settimeout(10.0)
         with conn:
             print('Conectado por', addr)
             reception_over = True
