@@ -56,7 +56,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                             print(f'mac: {mac_seq} | msg: {msg} | protocol: {protocol} | transport: {transport} | length: {length}')
 
-                            Dev.insert(mac_adress=mac_seq).execute()
+                            # Save Mac Adress, only if it isn't saved already
+                            if not (Dev.select().where(Dev.mac_adress == mac_seq).exists()):
+                                Dev.insert(mac_adress=mac_seq).execute()
                             dev_id = (Dev.select(Dev.device_id).where(Dev.mac_adress == mac_seq))
                             print(dev_id)
                             Log.insert(
