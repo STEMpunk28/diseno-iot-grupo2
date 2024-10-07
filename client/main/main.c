@@ -313,10 +313,12 @@ void app_main(void){
     ESP_LOGI(TAG,"DEBUG\n");
     // Guardar la capa de transporte para configurar la conexion
     send_data(sock, conf_data);
-    if (layer == 0)
+    if (layer == 0):
         ESP_LOGI(TAG,"TCP, A mimir\n");
-        close_tcp(sock);
         //Deep Sleep for one second
         esp_deep_sleep(1000000);
-    ESP_LOGI(TAG,"UDP, sigo enviando\n");
+    if (layer == 1):
+        ESP_LOGI(TAG,"UDP, espero un segundo y sigo enviando\n");
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        
 }
