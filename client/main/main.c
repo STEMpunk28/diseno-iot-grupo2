@@ -276,29 +276,9 @@ void print_bytes(char*  buffer, int size) {
 }
 
 
-void send_data(int socket, char* conf_data) {
+void send_data(int socket, int protocol) {
     char* send_ack = "PACKAGE";
     send(socket, send_ack, strlen(send_ack), 0);
-    ESP_LOGI(TAG, "Conf_Data: %s\n", conf_data);
-    ESP_LOGI(TAG, "%c", conf_data[0]);
-    ESP_LOGI(TAG, "%c", conf_data[1]);
-    ESP_LOGI(TAG, "%c", conf_data[2]);
-
-
-    // Chequeo de protocolo (y capa de transporte a futuro), para luego enviar datos
-    // Como el mensaje enviado es un string codificado en UTF-8 es necesario truncar los primeros dos carácteres
-    char conf_flag[3] = {conf_data[0], conf_data[1], '\0'};
-
-    ESP_LOGI(TAG, "Conf_Flag: %s", conf_flag);
-
-    int protocol = 0;
-    if (strcmp(conf_flag, "00") == 0) protocol=0;
-    if (strcmp(conf_flag, "10") == 0) protocol=1;
-    if (strcmp(conf_flag, "20") == 0) protocol=2;
-    if (strcmp(conf_flag, "30") == 0) protocol=3;
-    if (strcmp(conf_flag, "40") == 0) protocol=4;
-
-
 
     ESP_LOGI(TAG,"Usando protocolo %i\n", protocol);
     char* pack = create_packet(protocol);
@@ -314,9 +294,7 @@ void send_data(int socket, char* conf_data) {
 
 void app_main(void){
     nvs_init();
-
     ESP_LOGI(TAG, "float random %f",  (float) esp_random()/(float) UINT_MAX);
-
         
     wifi_init_sta(WIFI_SSID, WIFI_PASSWORD);
     ESP_LOGI(TAG,"Conectado a WiFi!\n");
@@ -325,12 +303,20 @@ void app_main(void){
     char conf_data[128];
     config_conn(sock, conf_data);
     ESP_LOGI(TAG,"Configuracion lista, enviando datos\n");
+    
+    ESP_LOGI(TAG, "Conf_Data: %s\n", conf_data);
+    char protocol = conf_data[0];
+    ESP_LOGI(TAG, "Protocolo: %i\n", conf_data[1]);
+    char layer = conf_data[1];
+    ESP_LOGI(TAG, "Capa de transporte: %i\n", layer);
+
     ESP_LOGI(TAG,"DEBUG\n");
-    ESP_LOGI(TAG,"Configuración: %s\n", conf_data);
-    ESP_LOGI(TAG,"DEBUG 2\n");
+    // Guardar la capa de transporte para configurar la conexion
     send_data(sock, conf_data);
-    ESP_LOGI(TAG,"A mimir\n");
-    close_tcp(sock);
-    //Deep Sleep for one second
-    esp_deep_sleep(1000000);
+    if (layer == 0)
+        ESP_LOGI(TAG,"TCP, A mimir\n");
+        close_tcp(sock);
+        //Deep Sleep for one second
+        esp_deep_sleep(1000000);
+    ESP_LOGI(TAG,"UDP, sigo enviando\n");
 }
