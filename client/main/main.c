@@ -122,7 +122,6 @@ void nvs_init() {
 char* create_packet(char protocol) {
     char transport_layer;
 
-    // 
     unsigned short packet_size;
 
     switch(protocol) {
@@ -145,7 +144,6 @@ char* create_packet(char protocol) {
 
     char* buffer = malloc(packet_size);
 
-
     // HEADER 
     // Device Mac
     int pointer = 0;
@@ -167,7 +165,6 @@ char* create_packet(char protocol) {
     // Protocol ID
     memcpy(&buffer[pointer], &protocol, sizeof(protocol));
     pointer += sizeof(protocol);
-    // strcpy(protocol_id, ((char*) protocol));
 
     //transport layer (wip)
     transport_layer = 0;
@@ -212,8 +209,73 @@ char* create_packet(char protocol) {
     
     }
 
+    if (protocol == 3) { // Solo p3 envia amp, fre y rms
+        float random_amp_x = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_amp_y = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_amp_z = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_fre_x = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_fre_y = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_fre_z = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
 
+        memcpy(&buffer[pointer], &random_amp_x, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_amp_y, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_amp_z, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_fre_x, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_fre_y, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_fre_z, 4);
+        pointer+=4;
+    
+    }
 
+    if (protocol == 4) { // Solo p4 envia acc y gyr        
+        float* random_acc_x;
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+            random_acc_x[i] = random_acc;
+        }
+        float* random_acc_y;
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+            random_acc_y[i] = random_acc;
+        }
+        float* random_acc_z;
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+            random_acc_z[i] = random_acc;
+        }
+        float* random_gyr_x;
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+            random_gyr_x[i] = random_acc;
+        }
+        float* random_gyr_y;
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+            random_gyr_y[i] = random_acc;
+        }
+        float* random_gyr_z;
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+            random_gyr_z[i] = random_acc;
+        }
+        memcpy(&buffer[pointer], &random_acc_x, 8000);
+        pointer+=8000;
+        memcpy(&buffer[pointer], &random_acc_y, 8000);
+        pointer+=8000;
+        memcpy(&buffer[pointer], &random_acc_z, 8000);
+        pointer+=8000;
+        memcpy(&buffer[pointer], &random_gyr_x, 8000);
+        pointer+=8000;
+        memcpy(&buffer[pointer], &random_gyr_y, 8000);
+        pointer+=8000;
+        memcpy(&buffer[pointer], &random_gyr_z, 8000);
+        pointer+=8000;
+    }
 
     ESP_LOGI("PKT", "PACKET SIZE:  %hu", packet_size);
     ESP_LOGI("PKT", "Buffer creado");
