@@ -16,6 +16,7 @@
 #include "nvs_flash.h"
 #include "time.h"
 #include <stdlib.h>
+#include "math.h"
 #include <unistd.h>
 #include "lwip/sockets.h" // Para sockets
 
@@ -32,6 +33,8 @@
 static const char* TAG = "WIFI";
 static int s_retry_num = 0;
 static EventGroupHandle_t s_wifi_event_group;
+
+
 
 
 void event_handler(void* arg, esp_event_base_t event_base,
@@ -245,48 +248,42 @@ char* create_packet(char protocol, char transport) {
 
     if (protocol == 4+'0') { // Solo p4 envia acc y gyr        
         ESP_LOGI("PKT", "PROTOCOL 4 WRITTEN");
-        float* random_acc_x;
+        // acc_x from -1000.0 to 1000.0
         for (int i = 0; i < 2000; i++) {
-            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
-            random_acc_x[i] = random_acc;
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
         }
-        float* random_acc_y;
+        // acc_y from -1000.0 to 1000.0
         for (int i = 0; i < 2000; i++) {
-            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
-            random_acc_y[i] = random_acc;
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
         }
-        float* random_acc_z;
+        // acc_z from -1000.0 to 1000.0
         for (int i = 0; i < 2000; i++) {
-            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
-            random_acc_z[i] = random_acc;
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
         }
-        float* random_gyr_x;
+        // gyr_x from -1000.0 to 1000.0
         for (int i = 0; i < 2000; i++) {
-            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
-            random_gyr_x[i] = random_acc;
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
         }
-        float* random_gyr_y;
+        // gyr_y from -1000.0 to 1000.0
         for (int i = 0; i < 2000; i++) {
-            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
-            random_gyr_y[i] = random_acc;
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
         }
-        float* random_gyr_z;
+        // gyr_z from -1000.0 to 1000.0
         for (int i = 0; i < 2000; i++) {
-            float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
-            random_gyr_z[i] = random_acc;
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
         }
-        memcpy(&buffer[pointer], &random_acc_x, 8000);
-        pointer+=8000;
-        memcpy(&buffer[pointer], &random_acc_y, 8000);
-        pointer+=8000;
-        memcpy(&buffer[pointer], &random_acc_z, 8000);
-        pointer+=8000;
-        memcpy(&buffer[pointer], &random_gyr_x, 8000);
-        pointer+=8000;
-        memcpy(&buffer[pointer], &random_gyr_y, 8000);
-        pointer+=8000;
-        memcpy(&buffer[pointer], &random_gyr_z, 8000);
-        pointer+=8000;
     }
 
     ESP_LOGI("PKT", "PACKET SIZE:  %hu", packet_size);
@@ -360,7 +357,26 @@ void send_data(int socket, char protocol, char transport) {
     memcpy(&packet_size, &pack[10], 2);
     sleep(1);
     ESP_LOGI(TAG, "packet_size %i", packet_size);
-    send(socket, pack, packet_size, 0);
+
+    int MAX_PACKET_SIZE = 750;
+
+    if (packet_size < MAX_PACKET_SIZE) {
+        send(socket, pack, packet_size, 0);
+        sleep(1);
+    } else {
+
+        int init = 0;
+        while (init < packet_size-1) {
+            ESP_LOGI(TAG, "sending %i/%i ...", init, packet_size);
+            int size = fmin(MAX_PACKET_SIZE, packet_size-init);
+            send(socket, pack + init, size, 0);
+            init += size;
+            // sleep(1);
+        }
+
+
+
+    }
     free(pack);
     
 }
@@ -386,8 +402,13 @@ void app_main(void){
     ESP_LOGI(TAG, "Capa de transporte: %c\n", layer);
 
     ESP_LOGI(TAG,"DEBUG\n");
-    // Guardar la capa de transporte para configurar la conexion
+    // Guardar la capa de transporte para configurar la conexion    
     send_data(sock, protocol, layer);
+    
+    
+    
+    
+    
     if (layer == 0+'0') {
         ESP_LOGI(TAG,"TCP, A mimir\n");
         //Deep Sleep for one second
