@@ -16,7 +16,35 @@ db_config = {
 }
 
 def parseP4(lists):
-    return
+    # Asumiendo recepcion correcta
+    acc_x = []
+    acc_y = []
+    acc_z = []
+    gyr_x = []
+    gyr_y = []
+    gyr_z = []
+
+    acc_x_raw = lists[:8000]
+    for i in range(2000):
+        acc_x.append(acc_x_raw[(i-1)*4:i*4])
+    acc_y_raw = lists[8000:16000]
+    for i in range(2000):
+        acc_y.append(acc_y_raw[(i-1)*4:i*4])
+    acc_z_raw = lists[16000:24000]
+    for i in range(2000):
+        acc_z.append(acc_z_raw[(i-1)*4:i*4])
+    gyr_x_raw = lists[24000:32000]
+    for i in range(2000):
+        gyr_x.append(gyr_x_raw[(i-1)*4:i*4])
+    gyr_y_raw = lists[32000:40000]
+    for i in range(2000):
+        gyr_y.append(gyr_y_raw[(i-1)*4:i*4])
+    gyr_z_raw = lists[40000:]
+    for i in range(2000):
+        gyr_z.append(gyr_z_raw[(i-1)*4:i*4])
+
+
+    return acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z
 
 def populate_db(data2):
     header = data2[:12]
