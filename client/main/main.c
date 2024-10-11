@@ -16,13 +16,14 @@
 #include "nvs_flash.h"
 #include "time.h"
 #include <stdlib.h>
+#include <unistd.h>
 #include "lwip/sockets.h" // Para sockets
 
 //Credenciales de WiFi
 
-#define WIFI_SSID "RASPI"
-#define WIFI_PASSWORD "123456789"
-#define SERVER_IP     "10.20.1.1" // IP del servidor
+#define WIFI_SSID "Melisso-ont-2.4g" // "RASPI"
+#define WIFI_PASSWORD "7dgzqnqNmjw5" // "123456789"
+#define SERVER_IP     "192.168.100.203" // "10.20.1.1" // IP del servidor
 #define SERVER_PORT   1234
 
 // Variables de WiFi
@@ -119,25 +120,30 @@ void nvs_init() {
     ESP_ERROR_CHECK(ret);
 }
 
-char* create_packet(char protocol) {
+char* create_packet(char protocol, char transport) {
+    ESP_LOGI("DEBUG", "CREATE PACKET --");
     char transport_layer;
-
     unsigned short packet_size;
 
     switch(protocol) {
-        case 0:
+        case 0+'0':
+            ESP_LOGI(TAG, "packet 16");
             packet_size = 16;
             break;
-        case 1:
+        case 1+'0':
+            ESP_LOGI(TAG, "packet 17");
             packet_size = 17;
             break;
-        case 2:
+        case 2+'0':
+            ESP_LOGI(TAG, "packet 27");
             packet_size = 27;
             break;
-        case 3:
+        case 3+'0':
+            ESP_LOGI(TAG, "packet 55");
             packet_size = 55;
             break;
-        case 4:
+        case 4+'0':
+            ESP_LOGI(TAG, "packet 48027");
             packet_size = 48027;
             break;
     }
@@ -147,7 +153,6 @@ char* create_packet(char protocol) {
     // HEADER 
     // Device Mac
     int pointer = 0;
-    // PENDIENTE: cambiar esto por la mac real
 
     uint8_t baseMac[6];
     // Get MAC address of the WiFi station interface
@@ -167,9 +172,11 @@ char* create_packet(char protocol) {
     pointer += sizeof(protocol);
 
     //transport layer (wip)
-    transport_layer = 0;
+    transport_layer = transport;
     memcpy(&buffer[pointer], &transport_layer, sizeof(transport_layer));
     pointer+= sizeof(transport_layer);
+
+    ESP_LOGI("PKT", "TRANSPORT LAYER WRITTEN");
 
     // length
     memcpy(&buffer[pointer], &packet_size, sizeof(packet_size));
@@ -178,13 +185,15 @@ char* create_packet(char protocol) {
     // BODY
 
     // timestamp
-    if (protocol >= 0) { // P0-P4 envian timestamp
+    if (protocol >= 0+'0') { // P0-P4 envian timestamp
+        ESP_LOGI("PKT", "PROTOCOL 0 WRITTEN");
         unsigned int timestamp = time(NULL);
         memcpy(&buffer[pointer], &timestamp, 4);
-        pointer += 4;   
+        pointer += 4;
     }
     // battery (batt_level)
-    if (protocol >= 1) { // P1-P4 envían batt_level
+    if (protocol >= 1+'0') { // P1-P4 envían batt_level
+        ESP_LOGI("PKT", "PROTOCOL 1 WRITTEN");
         unsigned int random_num = esp_random() % 101;
         ESP_LOGI("PKT","Battery Level: %i", random_num);
         memcpy(&buffer[pointer], &random_num, 1);
@@ -192,7 +201,8 @@ char* create_packet(char protocol) {
     }
     
     // temp, pres, hum, co
-    if (protocol >= 2) { // P2-P4 envían temp, pres, hum, co
+    if (protocol >= 2+'0') { // P2-P4 envían temp, pres, hum, co
+        ESP_LOGI("PKT", "PROTOCOL 2 WRITTEN");
         unsigned int random_temp  = 5 + (esp_random() % 26);
         unsigned int random_pres  = 1000 + (esp_random() % 201);
         unsigned int random_hum = 30 +  (esp_random() % 51);
@@ -209,7 +219,8 @@ char* create_packet(char protocol) {
     
     }
 
-    if (protocol == 3) { // Solo p3 envia amp, fre y rms
+    if (protocol == 3+'0') { // Solo p3 envia amp, fre y rms
+        ESP_LOGI("PKT", "PROTOCOL 3 WRITTEN");
         float random_amp_x = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
         float random_amp_y = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
         float random_amp_z = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
@@ -232,7 +243,8 @@ char* create_packet(char protocol) {
     
     }
 
-    if (protocol == 4) { // Solo p4 envia acc y gyr        
+    if (protocol == 4+'0') { // Solo p4 envia acc y gyr        
+        ESP_LOGI("PKT", "PROTOCOL 4 WRITTEN");
         float* random_acc_x;
         for (int i = 0; i < 2000; i++) {
             float random_acc = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
@@ -331,21 +343,22 @@ char* config_conn(int socket, char* ptr_buffer) {
 void print_bytes(char*  buffer, int size) {
     ESP_LOGI("DEBUG","=== BUFFER PRINTING ===");
     for (int i=0; i<size;i++) {
-
         ESP_LOGI("DEBUG", "[%i] %c", i, buffer[i]);
     }
     ESP_LOGI("DEBUG", "=== BUFFER END ===");
 }
 
 
-void send_data(int socket, int protocol) {
+void send_data(int socket, char protocol, char transport) {
+    ESP_LOGI("DEBUG", "SEND_DATA --");
     char* send_ack = "PACKAGE";
     send(socket, send_ack, strlen(send_ack), 0);
 
-    ESP_LOGI(TAG,"Usando protocolo %i\n", protocol);
-    char* pack = create_packet(protocol);
+    ESP_LOGI(TAG,"Usando protocolo %c\n", protocol);
+    char* pack = create_packet(protocol, transport);
     unsigned short packet_size;
     memcpy(&packet_size, &pack[10], 2);
+    sleep(1);
     ESP_LOGI(TAG, "packet_size %i", packet_size);
     send(socket, pack, packet_size, 0);
     free(pack);
@@ -368,19 +381,21 @@ void app_main(void){
     
     ESP_LOGI(TAG, "Conf_Data: %s\n", conf_data);
     char protocol = conf_data[0];
-    ESP_LOGI(TAG, "Protocolo: %i\n", conf_data[1]);
+    ESP_LOGI(TAG, "Protocolo: %c\n", protocol);
     char layer = conf_data[1];
-    ESP_LOGI(TAG, "Capa de transporte: %i\n", layer);
+    ESP_LOGI(TAG, "Capa de transporte: %c\n", layer);
 
     ESP_LOGI(TAG,"DEBUG\n");
     // Guardar la capa de transporte para configurar la conexion
-    send_data(sock, conf_data);
-    if (layer == 0):
+    send_data(sock, protocol, layer);
+    if (layer == 0+'0') {
         ESP_LOGI(TAG,"TCP, A mimir\n");
         //Deep Sleep for one second
         esp_deep_sleep(1000000);
-    if (layer == 1):
+    }
+    if (layer == 1+'0') {
         ESP_LOGI(TAG,"UDP, espero un segundo y sigo enviando\n");
         vTaskDelay(1000/portTICK_PERIOD_MS);
+    }
         
 }

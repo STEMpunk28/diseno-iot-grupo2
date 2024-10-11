@@ -54,8 +54,9 @@ class Data(BaseModel):
     gyr_z = ArrayField(FloatField, null = True)
 
 class Conf(BaseModel):
-    protocol = IntegerField(default = 0)
-    transport_layer = IntegerField(default = 0)
+    protocol = IntegerField()
+    transport_layer = IntegerField()
 
 # Se crean las tablas
 db.create_tables([Dev, Log, Data, Conf])
+Conf.insert(protocol=0, transport_layer=0).execute()

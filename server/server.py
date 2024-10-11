@@ -27,11 +27,19 @@ def populate_db(data2):
     
     # Spurce: https://stackoverflow.com/questions/4959741/python-print-mac-address-out-of-6-byte-string
     mac_seq = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",mac)
+    print(f'mac_seq ${mac_seq}')
 
     msg = struct.unpack('H', header[6:8])[0] # msgID is 2 bytes unsigned
-    protocol = header[8]
-    transport = header[9]
+    print(f'msgID ${msg}')
+
+    protocol = int(struct.unpack('c', header[8].to_bytes(1))[0])
+    print(f'protocol ${protocol}')
+
+    transport = int(struct.unpack('c', header[9].to_bytes(1))[0])
+    print(f'transport ${transport}')
+
     length = struct.unpack('H',header[10:12])[0]
+    print(f'protocol ${length}')
 
     print(f'mac: {mac_seq} | msg: {msg} | protocol: {protocol} | transport: {transport} | length: {length}')
 
@@ -149,21 +157,25 @@ def exchange(conn, addr):
                 print(data)
                 print("Recibido: ", data.decode('utf-8'))
 
-                if(data.decode('utf-8') == "CONFIG"):
+                if(data.decode('ascii') == "CONFIG"):
                     config = Conf.get_by_id(1)
                     respuesta = str(config.protocol) + str(config.transport_layer)
                     print("Enviando la configuracion = ", respuesta)
-                    conn.sendall(respuesta.encode('utf-8'))
+                    conn.sendall(respuesta.encode('ascii'))
                 
-                elif(data.decode('utf-8') == "PACKAGE"):
+                elif(data.decode('ascii') == "PACKAGE"):
                     print("Esperando paquete")
                     try:
                         data2 = conn.recv(1024)
                         if data2:
                             print("Recibido: ", data2)
-                            populate_db(data2)
+                            try:
+                                populate_db(data2)
+                            except Exception as e:
+                                print(e)
                             reception_over = False
                     except:
+                        # print("Droppeando package por timeout")
                         reception_over = False            
 
 
@@ -177,5 +189,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         conn, addr = s.accept()
         print(f"ESP conectada en ({addr[0]}; {addr[1]}), asignando Thread")
         # Make a thread to hold connection
-        x = threading.Thread(target=exchange, args=(conn, addr,))
+        x = threading.Thread(target=exchange, args=(conn, addr,), )
         x.start()
