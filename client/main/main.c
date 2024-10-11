@@ -371,7 +371,7 @@ void send_data(int socket, char protocol, char transport) {
             int size = fmin(MAX_PACKET_SIZE, packet_size-init);
             send(socket, pack + init, size, 0);
             init += size;
-            // sleep(1);
+            sleep(0.25);
         }
 
 
