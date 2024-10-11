@@ -218,8 +218,8 @@ def exchange(conn, addr):
             try:
                 data = conn.recv(1024)
                 if data:
-                    print(data)
-                    print("Recibido: ", data.decode('utf-8'))
+                    # print(data)
+                    # print("Recibido: ", data.decode('utf-8'))
 
                     if(data.decode('ascii') == "CONFIG"):
                         config = Conf.get_by_id(1)
@@ -279,6 +279,7 @@ def udp_thread():
     clients = dict() # vamos a identificarlos por la tupla (ip, puerto)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind((HOST, PORT))
+        print(f"El servidor está esperando paquetes UDP en el puerto {PORT}")
         while True:
             data, addr =  s.recvfrom(1024)
             if b'PACKAGE' == data[:7]:
@@ -316,7 +317,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     while True:
         conn, addr = s.accept()
-        print(f"ESP conectada en ({addr[0]}; {addr[1]}), asignando Thread")
+        # print(f"ESP conectada en ({addr[0]}; {addr[1]}), asignando Thread")
         # Make a thread to hold connection
         x = threading.Thread(target=exchange, args=(conn, addr,), )
         x.start()
