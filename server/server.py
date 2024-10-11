@@ -206,7 +206,7 @@ def populate_db(data2):
             gyr_x=gyr_x,
             gyr_y=gyr_y,
             gyr_z=gyr_z).execute()
-    print('[Data received]')
+    print('[Data stored]')
 
 def exchange(conn, addr):
     #Add timeout to deal with packet loss
@@ -215,58 +215,97 @@ def exchange(conn, addr):
         print('Conectado por', addr)
         reception_over = True
         while reception_over:
-            data = conn.recv(1024)
-            if data:
-                print(data)
-                print("Recibido: ", data.decode('utf-8'))
+            try:
+                data = conn.recv(1024)
+                if data:
+                    print(data)
+                    print("Recibido: ", data.decode('utf-8'))
 
-                if(data.decode('ascii') == "CONFIG"):
-                    config = Conf.get_by_id(1)
-                    respuesta = str(config.protocol) + str(config.transport_layer)
-                    print("Enviando la configuracion = ", respuesta)
-                    conn.sendall(respuesta.encode('ascii'))
-                
-                elif(data.decode('ascii') == "PACKAGE"):
-                    print("Esperando paquete")
-                    try:
-                        data2 = conn.recv(48027)
-                        if data2:
-                            print(data2[:12])
-                            length = get_packet_informed_length(data2)
-                            print(f'Informed Length is: {length} bytes')
-                            if length < MAX_PACKET_SIZE: #MAX_PACKET_SIZE
-                                print("Recibido: ", data2)
-                                try:
-                                    populate_db(data2)
-                                except Exception as e:
-                                    print(e)
-                                reception_over = False
-                            else:
-                                # gather all packets
-                                data_construction = data2
-                                try:
-                                    while(len(data_construction) < length):
-                                        print(f'Receiving {len(data_construction)}/{length}')
-                                        more_data = conn.recv(MAX_PACKET_SIZE)
-                                        if more_data:
-                                            data_construction = data_construction + more_data
-                                    # supposedly we have enough data now
+                    if(data.decode('ascii') == "CONFIG"):
+                        config = Conf.get_by_id(1)
+                        respuesta = str(config.protocol) + str(config.transport_layer)
+                        print("Enviando la configuracion = ", respuesta)
+                        conn.sendall(respuesta.encode('ascii'))
+                    
+                    elif(data.decode('ascii') == "PACKAGE"):
+                        print("Esperando paquete")
+                        try:
+                            data2 = conn.recv(48027)
+                            if data2:
+                                print(data2[:12])
+                                length = get_packet_informed_length(data2)
+                                print(f'Informed Length is: {length} bytes')
+                                if length < MAX_PACKET_SIZE: #MAX_PACKET_SIZE
+                                    print("Recibido: ", data2)
                                     try:
-                                        populate_db(data_construction)
+                                        populate_db(data2)
                                     except Exception as e:
+                                        # print(e)
                                         pass
                                     reception_over = False
-                                except:
-                                    print('[Packet loss detected, dropping]')
-                                    # drop the entire packet
-                                    reception_over = False
+                                else:
+                                    # gather all packets
+                                    data_construction = data2
+                                    try:
+                                        while(len(data_construction) < length):
+                                            print(f'Receiving {len(data_construction)}/{length}')
+                                            more_data = conn.recv(MAX_PACKET_SIZE)
+                                            if more_data:
+                                                data_construction = data_construction + more_data
+                                        # supposedly we have enough data now
+                                        try:
+                                            populate_db(data_construction)
+                                        except Exception as e:
+                                            pass
+                                        reception_over = False
+                                    except:
+                                        print('[Packet loss detected, dropping]')
+                                        # drop the entire packet
+                                        reception_over = False
 
 
 
 
-                    except:
-                        # print("Droppeando package por timeout")
-                        reception_over = False            
+                        except:
+                            # print("Droppeando package por timeout")
+                            reception_over = False            
+            except:
+                pass
+
+
+
+
+def udp_thread():
+    clients = dict() # vamos a identificarlos por la tupla (ip, puerto)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.bind((HOST, PORT))
+        while True:
+            data, addr =  s.recvfrom(1024)
+            if b'PACKAGE' == data[:7]:
+                # agregar (key:  addr, value:  b'') al diccionario
+                clients[addr] = b''
+            else:
+                # agregar data al valor de la key addr
+                if addr in clients:
+                    pre_data = clients[addr]
+                    clients[addr] = pre_data + data # concatenando buffers
+
+                    # revisamos si el buffer está completo (largo del buffer = largo indicado en el header)
+                    declared_length = get_packet_informed_length(clients[addr])
+                    if len(clients[addr]) == declared_length:
+                        # procesar el paquete
+                        try:
+                            populate_db(clients[addr])
+                        except Exception as e:
+                            print(e)
+                        # borrar la key del diccionario
+                        del clients[addr]
+
+        
+
+
+u_serv = threading.Thread(target=udp_thread, args=(), )
+u_serv.start()
 
 
 # Crea un socket para IPv4 y conexión TCP

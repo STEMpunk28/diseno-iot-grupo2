@@ -20,11 +20,12 @@
 #include <unistd.h>
 #include "lwip/sockets.h" // Para sockets
 
+
 //Credenciales de WiFi
 
-#define WIFI_SSID "Melisso-ont-2.4g" // "RASPI"
-#define WIFI_PASSWORD "7dgzqnqNmjw5" // "123456789"
-#define SERVER_IP     "192.168.100.203" // "10.20.1.1" // IP del servidor
+#define WIFI_SSID "RASPI"
+#define WIFI_PASSWORD "123456789"
+#define SERVER_IP     "10.20.1.1" // IP del servidor
 #define SERVER_PORT   1234
 
 // Variables de WiFi
@@ -316,6 +317,29 @@ int socket_tcp(){
     return sock;
 }
 
+int socket_udp(){
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+    inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr.s_addr);
+
+    // Crear un socket
+    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sock < 0) {
+        ESP_LOGE(TAG, "Error al crear el socket");
+        return 1;
+    }
+
+    // Conectar al servidor
+    if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0) {
+        ESP_LOGE(TAG, "Error al conectar");
+        close(sock);
+        return 1;
+    }
+
+    return sock;
+}
+
 void close_tcp(int socket) {
     // Cerrar el socket
     close(socket);
@@ -371,7 +395,8 @@ void send_data(int socket, char protocol, char transport) {
             int size = fmin(MAX_PACKET_SIZE, packet_size-init);
             send(socket, pack + init, size, 0);
             init += size;
-            sleep(0.25);
+            // esperamos 100 ms
+            sys_delay_ms(100);
         }
 
 
@@ -389,34 +414,49 @@ void app_main(void){
         
     wifi_init_sta(WIFI_SSID, WIFI_PASSWORD);
     ESP_LOGI(TAG,"Conectado a WiFi!\n");
-    int sock = socket_tcp();
-    ESP_LOGI(TAG,"Conectado al socket\n");
-    char conf_data[128];
-    config_conn(sock, conf_data);
-    ESP_LOGI(TAG,"Configuracion lista, enviando datos\n");
-    
-    ESP_LOGI(TAG, "Conf_Data: %s\n", conf_data);
-    char protocol = conf_data[0];
-    ESP_LOGI(TAG, "Protocolo: %c\n", protocol);
-    char layer = conf_data[1];
-    ESP_LOGI(TAG, "Capa de transporte: %c\n", layer);
 
-    ESP_LOGI(TAG,"DEBUG\n");
-    // Guardar la capa de transporte para configurar la conexion    
-    send_data(sock, protocol, layer);
-    
-    
-    
-    
-    
-    if (layer == 0+'0') {
-        ESP_LOGI(TAG,"TCP, A mimir\n");
-        //Deep Sleep for one second
-        esp_deep_sleep(1000000);
-    }
-    if (layer == 1+'0') {
-        ESP_LOGI(TAG,"UDP, espero un segundo y sigo enviando\n");
-        vTaskDelay(1000/portTICK_PERIOD_MS);
+    int loop = 1;
+    int u_sock = -1;
+    while (loop) {
+        int sock = socket_tcp();
+        ESP_LOGI(TAG,"Conectado al socket\n");
+        char conf_data[128];
+        config_conn(sock, conf_data);
+        ESP_LOGI(TAG,"Configuracion lista, enviando datos\n");
+        
+        ESP_LOGI(TAG, "Conf_Data: %s\n", conf_data);
+        char protocol = conf_data[0];
+        ESP_LOGI(TAG, "Protocolo: %c\n", protocol);
+        char layer = conf_data[1];
+        ESP_LOGI(TAG, "Capa de transporte: %c\n", layer);
+
+        ESP_LOGI(TAG,"DEBUG\n");
+
+        if (layer == '1') {
+            // tenemos que crear un socket UDP
+            u_sock = socket_udp();
+            send_data(u_sock, protocol, layer);
+        } else {
+            send_data(sock, protocol, layer);
+        }
+        
+        
+        
+        
+        
+        if (layer == 0+'0') {
+            ESP_LOGI(TAG,"TCP, A mimir\n");
+            //Deep Sleep for one second
+            loop = 0;
+            close_tcp(sock);
+            esp_deep_sleep(1000000);
+        }
+        if (layer == 1+'0') {
+            ESP_LOGI(TAG,"UDP, espero un segundo y sigo enviando\n");
+            vTaskDelay(1000/portTICK_PERIOD_MS);
+            close_tcp(sock);
+            if (u_sock != -1) close_tcp(u_sock);
+        }
     }
         
 }
