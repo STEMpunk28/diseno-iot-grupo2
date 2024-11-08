@@ -22,10 +22,10 @@ class MainWindow(pw.QMainWindow):
         # Boton para enviar configuracion
         windowBtn = pw.QPushButton('Enviar configuracion', self)
         # Conectar con funcion 
-        windowBtn.clicked.connect(lambda: self.update_window_size(0))
+        windowBtn.clicked.connect(self.send_conf)
 
         # Label para mostrar protocolo y conexion actual
-        self.windowLabel = pw.QLabel('Protocolo: ' + str(data_window_size) + ' Conexion: ' + str(data_window_size))
+        self.windowLabel = pw.QLabel('Protocolo: ' + str(protocol) + ' Conexion: ' + str(connection))
 
         # Boton que inicia recepcion
         requestBtn = pw.QPushButton('Iniciar conexion', self)
@@ -38,12 +38,15 @@ class MainWindow(pw.QMainWindow):
         closeBtn.clicked.connect(self.end)
 
         # Añadir selector de variable
-        GraphSelect = pw.QComboBox(self)
-        
+        self.GraphSelect = pw.QComboBox()
+        self.GraphSelect.addItems(['elige una variable', 'batt_level', 'temp', 'pres',
+                              'hum', 'co', 'amp_x', 'amp_y', 'amp_z',
+                              'fre_x', 'fre_y', 'fre_z', 'rms'])
+
         # Boton para mostrar grafico
         graphBtn = pw.QPushButton('Mostrar grafico', self)
-        # Conectar con funcion 
-        graphBtn.clicked.connect(self.end)
+        # Conectar con funcion update_graph
+        graphBtn.clicked.connect(self.update_graph)
 
         # Grafico para todas las variables
         self.plotGraph = pg.PlotWidget()
@@ -63,7 +66,7 @@ class MainWindow(pw.QMainWindow):
         btnLayout.addWidget(self.windowLabel, 1, 0, 1, 2)
         btnLayout.addWidget(requestBtn, 2, 0)
         btnLayout.addWidget(closeBtn, 2, 1)
-        btnLayout.addWidget(GraphSelect, 3, 0)
+        btnLayout.addWidget(self.GraphSelect, 3, 0)
         btnLayout.addWidget(graphBtn, 3, 1)
         graphLayout.addWidget(self.plotGraph)
 
@@ -75,45 +78,32 @@ class MainWindow(pw.QMainWindow):
         widget = pw.QWidget()
         widget.setLayout(mainLayout)
         self.setCentralWidget(widget)
+    
+    @pyqtSlot()
+    def send_conf(self):
+        print("Sending configuration")
 
     @pyqtSlot()
     def request(self):
-        print("Request")
-
-
-    @pyqtSlot()
-    def update_data(self):
-        print("update")
+        print("Requesting data")
 
     @pyqtSlot()
     def end(self):
         #Cerrar conexion, reiniciando ESP
-        print("Close")
+        print("Closing conn")
 
     @pyqtSlot()
-    def update_window_size(self, window):
-        #Actualizar ventana de datos
-        print("Update")
+    def update_graph(self):
+        variable_graph = self.GraphSelect.currentText()
+        if not variable_graph == 'elige una variable':
+            self.plotGraph.setTitle(variable_graph + ' vs. tiempo')
+            self.plotGraph.setLabel("left", variable_graph)
+            # Actualiza el grafico con los datos guardados
 
 
 #Variables globales
-data_window_size = 10
-press = []
-press_rms = 0
-press_fft = 0
-press_fp = 0
-temp = []
-temp_rms = 0
-temp_fft = 0
-temp_fp = 0
-hum = []
-hum_rms = 0
-hum_fft = 0
-hum_fp = 0
-co = []
-co_rms = 0
-co_fft = 0
-co_fp = 0
+protocol = -1
+connection = 'None'
 
 if __name__ == '__main__':
     app = pw.QApplication(sys.argv)
