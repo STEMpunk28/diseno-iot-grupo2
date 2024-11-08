@@ -23,15 +23,14 @@ class Dev(BaseModel):
     mac_adress = CharField()
 
 class Log(BaseModel):
-    msg_id = IntegerField()
     packet_id = IdentityField()
-    device_id = ForeignKeyField(Dev)
+    device_mac = CharField()
+    msg_id = IntegerField()
     protocol_id = IntegerField()
-    transport_layer = IntegerField()
+    connection_type = IntegerField()
     length = IntegerField()
 
 class Data(BaseModel):
-    data_id = IdentityField()
     packet_id = ForeignKeyField(Log)
     timestamp = IntegerField()
     batt_level = IntegerField(null = True)
@@ -46,16 +45,10 @@ class Data(BaseModel):
     fre_y = FloatField(null = True)
     fre_z = FloatField(null = True)
     rms = FloatField(null = True)
-    acc_x = ArrayField(FloatField, null = True)
-    acc_y = ArrayField(FloatField, null = True)
-    acc_z = ArrayField(FloatField, null = True)
-    gyr_x = ArrayField(FloatField, null = True)
-    gyr_y = ArrayField(FloatField, null = True)
-    gyr_z = ArrayField(FloatField, null = True)
 
 class Conf(BaseModel):
     protocol = IntegerField()
-    transport_layer = IntegerField()
+    connection = IntegerField()
 
 # Se crean las tablas
 db.create_tables([Dev, Log, Data, Conf])
