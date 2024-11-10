@@ -2,10 +2,8 @@ import sys
 
 import PyQt5.QtWidgets as pw
 import pyqtgraph as pg
+import ble_client
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtGui import QIntValidator
-
-# import ble_client
 
 class MainWindow(pw.QMainWindow):
     def __init__(self):
@@ -28,7 +26,7 @@ class MainWindow(pw.QMainWindow):
         self.windowLabel = pw.QLabel('Protocolo: ' + str(protocol) + ' Conexion: ' + str(connection))
 
         # Boton que inicia recepcion
-        requestBtn = pw.QPushButton('Iniciar conexion', self)
+        requestBtn = pw.QPushButton('Iniciar recepcion', self)
         # Conectar a funcion request
         requestBtn.clicked.connect(self.request)
 
@@ -106,6 +104,7 @@ protocol = -1
 connection = 'None'
 
 if __name__ == '__main__':
+    ble_client.connect_to_ESP()
     app = pw.QApplication(sys.argv)
     window = MainWindow()
     window.show()
