@@ -1,3 +1,4 @@
+import threading
 import asyncio
 from bleak import BleakClient
 from models import *
@@ -135,18 +136,29 @@ async def send_conf_async(ADDRESS):
         conf_prot = Conf.get_by_id(1).protocol
         conf_trans = Conf.get_by_id(1).connection
         # Escribimos en la caractertistica el protocolo actual
-        await client.write_gatt_char(CHARACTERISTIC_UUID, b"\x"+conf_prot+"\x"+conf_trans)
+        await client.write_gatt_char(CHARACTERISTIC_UUID, hex(conf_prot)+hex(conf_trans))
 
 async def recv_data_async(ADDRESS):
     async with BleakClient(ADDRESS) as client:
         # Pedimos un paquete a esa caracteristica
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
         print(get_bytes(char_value))
+        # Lo añadimos a la base de datos
         populate_db(char_value)
 
+def recv_data_thread():
+    t = threading.currentThread()
+    while getattr(t, "do_run", True):
+        asyncio.run(recv_data_async(ADDRESS))
 
 def send_conf():
     asyncio.run(send_conf_async(ADDRESS))
+    return Conf.get_by_id(1).protocol, Conf.get_by_id(1).connection
 
 def recv_data():
-    asyncio.run(recv_data_async(ADDRESS))
+    x = threading.Thread(target=recv_data_thread, )
+    x.start()
+    return x
+
+def recv_end(thread):
+    thread.do_run() = False

@@ -80,15 +80,22 @@ class MainWindow(pw.QMainWindow):
     @pyqtSlot()
     def send_conf(self):
         print("Sending configuration")
+        global protocol, connection
+        protocol, connection = ble_client.send_conf()
+        self.windowLabel.text = 'Protocolo: ' + str(protocol) + ' Conexion: ' + str(connection)
 
     @pyqtSlot()
     def request(self):
         print("Requesting data")
+        global thread
+        thread = ble_client.recv_data()
 
     @pyqtSlot()
     def end(self):
         #Cerrar conexion, reiniciando ESP
         print("Closing conn")
+        global thread
+        ble_client.recv_end(thread)
 
     @pyqtSlot()
     def update_graph(self):
@@ -102,9 +109,9 @@ class MainWindow(pw.QMainWindow):
 #Variables globales
 protocol = -1
 connection = 'None'
+thread = None
 
 if __name__ == '__main__':
-    ble_client.connect_to_ESP()
     app = pw.QApplication(sys.argv)
     window = MainWindow()
     window.show()
