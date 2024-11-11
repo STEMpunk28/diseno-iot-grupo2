@@ -1,7 +1,9 @@
 import threading
 import asyncio
+import struct
 from bleak import BleakClient
 from models import *
+
 
 def populate_db(data2):
     # print(f'data size: {len(data2)}')
