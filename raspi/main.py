@@ -2,22 +2,8 @@ import sys
 import PyQt5.QtWidgets as pw
 import pyqtgraph as pg
 import ble_client
-from PyQt5.QtCore import pyqtSlot, QObject, QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSlot, QTimer
 from models import *
-
-class Configuration(QObject):
-    finished = pyqtSignal()
-
-    def run(self):
-        ble_client.send_conf()
-        self.finished.emit()
-
-class RecvData(QObject):
-    finished = pyqtSignal()
-
-    def run(self):
-        ble_client.recv_data()
-        self.finished.emit()
 
 class MainWindow(pw.QMainWindow):
     def __init__(self):
@@ -31,11 +17,13 @@ class MainWindow(pw.QMainWindow):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
-        #Thread para el trabajo BLE de fondo
-        self.thread = QThread()
+        # Create a QTimer that request data every X seconds
+        self.timerRecv = QTimer(self)
+        self.timerRecv.timeout.connect(self.recv)
 
-        self.config = Configuration()
-        self.recv = RecvData()
+        # Create a QTimer that updates the graph every second
+        self.timerGraph = QTimer(self)
+        self.timerGraph.timeout.connect(self.update_graph)
 
         # Boton para enviar configuracion
         windowBtn = pw.QPushButton('Enviar configuracion', self)
@@ -63,8 +51,8 @@ class MainWindow(pw.QMainWindow):
 
         # Boton para mostrar grafico
         graphBtn = pw.QPushButton('Mostrar grafico', self)
-        # Conectar con funcion update_graph
-        graphBtn.clicked.connect(self.update_graph)
+        # Conectar con funcion change_graph
+        graphBtn.clicked.connect(self.change_graph)
 
         # Grafico para todas las variables
         self.plotGraph = pg.PlotWidget()
@@ -102,35 +90,24 @@ class MainWindow(pw.QMainWindow):
         print("Sending configuration")
         global protocol, connection
 
-        self.config.moveToThread(self.thread)
-        self.thread.started.connect(self.config.run)
-        self.config.finished.connect(self.thread.quit)
-        self.config.finished.connect(self.config.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        ble_client.send_conf()
 
         self.windowLabel.text = 'Protocolo: ' + str(protocol) + ' Conexion: ' + str(connection)
 
     @pyqtSlot()
     def request(self):
-        print("Requesting data")
-
-        self.recv.moveToThread(self.thread)
-        self.thread.started.connect(self.recv.run)
-        self.recv.finished.connect(self.thread.quit)
-        self.recv.finished.connect(self.recv.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        print("Start Requesting data")
+        self.timerRecv.start(3000)  # Update every 1000 milliseconds (1 second)
+        
 
     @pyqtSlot()
     def end(self):
         #Cerrar conexion, reiniciando ESP
-        print("Closing conn")
-        ble_client.command == "None"
-        ble_client.start()
+        print("Stop Requesting Data")
+        self.timerRecv.stop()
 
     @pyqtSlot()
-    def update_graph(self):
+    def change_graph(self):
         variable_graph = self.GraphSelect.currentText()
         i = self.GraphSelect.currentIndex()-1
         if not variable_graph == 'elige una variable':
@@ -141,6 +118,22 @@ class MainWindow(pw.QMainWindow):
             raw_data = Data.select(columns[i]).execute()
             raw_data_list=[getattr(dt, columns_text[i]) for dt in raw_data]
             print(raw_data_list)
+            self.plotGraph.plot(raw_data_list)
+            self.timerGraph.start(1000)  # Update every 1000 milliseconds (1 second)
+    
+    def recv(self):
+        print("Requesting data")
+        ble_client.recv_data()
+
+    
+    def update_graph(self):
+        variable_graph = self.GraphSelect.currentText()
+        i = self.GraphSelect.currentIndex()-1
+        if not variable_graph == 'elige una variable':
+            #self.plotGraph.clear()
+            # Actualiza el grafico con los datos guardados
+            raw_data = Data.select(columns[i]).execute()
+            raw_data_list=[getattr(dt, columns_text[i]) for dt in raw_data]
             self.plotGraph.plot(raw_data_list)
 
 
