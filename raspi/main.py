@@ -1,4 +1,5 @@
 import sys
+sys.coinit_flags = 0
 import PyQt5.QtWidgets as pw
 import pyqtgraph as pg
 import ble_client
