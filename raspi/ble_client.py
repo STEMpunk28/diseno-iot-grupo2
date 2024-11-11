@@ -1,11 +1,17 @@
 import threading
 import asyncio
 import struct
+import sys
+sys.coinit_flags = 0
 from bleak import BleakClient
 from models import *
 
+global command
+command = "None"
 
 def populate_db(data2):
+    print("data ====")
+    print(data2)
     # print(f'data size: {len(data2)}')
     header = data2[:12]
     body = data2[12:]
@@ -38,9 +44,9 @@ def populate_db(data2):
     print(dev_id)
     insert_id = Log.insert(
         msg_id = msg,
-        device_id=dev_id,
+        device_mac=mac_seq,
         protocol_id=protocol,
-        transport_layer=transport,
+        connection_type=transport,
         length=length).execute()
     
     pack_id = insert_id
@@ -119,26 +125,23 @@ def convert_to_128bit_uuid(short_uuid):
     short_uuid_hex = "{:04X}".format(short_uuid)
     return base_uuid[:4] + short_uuid_hex + base_uuid[8:]
 
-ADDRESS = "3C:61:05:65:A6:3E"
+ADDRESS = "4C:EB:D6:62:0B:B2"
 CHARACTERISTIC_UUID = convert_to_128bit_uuid(0xFF01) # Busquen este valor en el codigo de ejemplo de esp-idf
 
 def get_bytes(byte_str):
     return ' '.join(format(byte, '02x') for byte in byte_str)
-
-async def main(ADDRESS):
-    async with BleakClient(ADDRESS) as client:
-        # Pedimos un paquete a esa caracteristica
-        char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
-        print(get_bytes(char_value))
-        # Luego podemos escribir en la caracteristica
-        await client.write_gatt_char(CHARACTERISTIC_UUID, b"\x01\x00")
 
 async def send_conf_async(ADDRESS):
     async with BleakClient(ADDRESS) as client:
         conf_prot = Conf.get_by_id(1).protocol
         conf_trans = Conf.get_by_id(1).connection
         # Escribimos en la caractertistica el protocolo actual
-        await client.write_gatt_char(CHARACTERISTIC_UUID, hex(conf_prot)+hex(conf_trans))
+        characteristic_1 = bytes([conf_prot])
+        characteristic_2 = bytes([conf_trans])
+        # Concatenamos los bytes
+        characteristic = characteristic_1 + characteristic_2
+        print(characteristic)
+        await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic)
 
 async def recv_data_async(ADDRESS):
     async with BleakClient(ADDRESS) as client:
@@ -148,19 +151,23 @@ async def recv_data_async(ADDRESS):
         # Lo añadimos a la base de datos
         populate_db(char_value)
 
-def recv_data_thread():
-    t = threading.currentThread()
-    while getattr(t, "do_run", True):
-        asyncio.run(recv_data_async(ADDRESS))
-
 def send_conf():
-    asyncio.run(send_conf_async(ADDRESS))
+    send_conf_async(ADDRESS)
     return Conf.get_by_id(1).protocol, Conf.get_by_id(1).connection
 
 def recv_data():
-    x = threading.Thread(target=recv_data_thread, )
-    x.start()
-    return x
+    recv_data_async(ADDRESS)
 
-def recv_end(thread):
-    thread.do_run() = False
+def recv_end():
+    recv_data_async(ADDRESS)
+
+async def main(ADDRESS):
+    if command == "Conf":
+        await send_conf_async(ADDRESS)
+        command == "None"
+    if command == "Recv":
+        await recv_data_async(ADDRESS)
+    await send_conf_async(ADDRESS)
+    await recv_data_async(ADDRESS)
+
+asyncio.run(main(ADDRESS))

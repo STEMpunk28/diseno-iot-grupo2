@@ -1,9 +1,9 @@
 import sys
-
 import PyQt5.QtWidgets as pw
 import pyqtgraph as pg
 import ble_client
 from PyQt5.QtCore import pyqtSlot
+from models import *
 
 class MainWindow(pw.QMainWindow):
     def __init__(self):
@@ -81,35 +81,36 @@ class MainWindow(pw.QMainWindow):
     def send_conf(self):
         print("Sending configuration")
         global protocol, connection
-        protocol, connection = ble_client.send_conf()
+        ble_client.command == "Conf"
         self.windowLabel.text = 'Protocolo: ' + str(protocol) + ' Conexion: ' + str(connection)
 
     @pyqtSlot()
     def request(self):
         print("Requesting data")
-        global thread
-        thread = ble_client.recv_data()
+        ble_client.command == "Recv"
 
     @pyqtSlot()
     def end(self):
         #Cerrar conexion, reiniciando ESP
         print("Closing conn")
-        global thread
-        ble_client.recv_end(thread)
+        ble_client.command == "None"
 
     @pyqtSlot()
     def update_graph(self):
         variable_graph = self.GraphSelect.currentText()
+        i = self.GraphSelect.currentIndex()-1
         if not variable_graph == 'elige una variable':
             self.plotGraph.setTitle(variable_graph + ' vs. tiempo')
             self.plotGraph.setLabel("left", variable_graph)
             # Actualiza el grafico con los datos guardados
+            #raw_data = Data.select(columns[i])
+            #self.plotGraph.plot(raw_data)
 
 
 #Variables globales
 protocol = -1
 connection = 'None'
-thread = None
+columns = [Data.battlevel, Data.temp, Data.press, Data.hum, Data.co]
 
 if __name__ == '__main__':
     app = pw.QApplication(sys.argv)

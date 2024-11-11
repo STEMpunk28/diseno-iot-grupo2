@@ -52,4 +52,4 @@ class Conf(BaseModel):
 
 # Se crean las tablas
 db.create_tables([Dev, Log, Data, Conf])
-Conf.insert(protocol=0, transport_layer=0).execute()
+Conf.insert(protocol=0, connection=0).execute()

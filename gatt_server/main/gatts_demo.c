@@ -33,6 +33,13 @@
 #include "esp_bt_device.h"
 #include "esp_gatt_common_api.h"
 
+#include "time.h"
+#include "esp_mac.h"
+#include <stdlib.h>
+#include "math.h"
+#include "esp_random.h"
+
+
 #include "sdkconfig.h"
 
 #define GATTS_TAG "GATTS_DEMO"
@@ -68,6 +75,11 @@ static esp_attr_value_t gatts_demo_char1_val =
     .attr_len     = sizeof(char1_str),
     .attr_value   = char1_str,
 };
+
+// Variable global para almacenar el byte de protocolo y byte de conexión
+static char send_protocol;
+static char send_connection;
+
 
 static uint8_t adv_config_done = 0;
 #define adv_config_flag      (1 << 0)
@@ -248,6 +260,177 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
     }
 }
 
+// GENERATE PACKET de la tarea pasada
+char* create_packet(char protocol, char transport) {
+    ESP_LOGI("DEBUG", "CREATE PACKET --");
+    char transport_layer;
+    unsigned short packet_size;
+
+    switch(protocol) {
+        case 0+'0':
+            ESP_LOGI(GATTS_TAG, "packet 16");
+            packet_size = 16;
+            break;
+        case 1+'0':
+            ESP_LOGI(GATTS_TAG, "packet 17");
+            packet_size = 17;
+            break;
+        case 2+'0':
+            ESP_LOGI(GATTS_TAG, "packet 27");
+            packet_size = 27;
+            break;
+        case 3+'0':
+            ESP_LOGI(GATTS_TAG, "packet 55");
+            packet_size = 55;
+            break;
+        case 4+'0':
+            ESP_LOGI(GATTS_TAG, "packet 48027");
+            packet_size = 48027;
+            break;
+    }
+
+    char* buffer = malloc(packet_size);
+
+    // HEADER 
+    // Device Mac
+    int pointer = 0;
+
+    uint8_t baseMac[6];
+    // Get MAC address of the WiFi station interface
+    esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
+
+    // char mac[6] = {7,6,5,4,3,4};
+    memcpy(&buffer[pointer], &baseMac, 6);
+    pointer += 6;
+    
+    // Msg ID
+    unsigned int msg_ID = esp_random();
+    memcpy(&buffer[pointer], &msg_ID, 2);
+    pointer += 2;
+
+    // Protocol ID
+    memcpy(&buffer[pointer], &protocol, sizeof(protocol));
+    pointer += sizeof(protocol);
+
+    //transport layer (wip)
+    transport_layer = transport;
+    memcpy(&buffer[pointer], &transport_layer, sizeof(transport_layer));
+    pointer+= sizeof(transport_layer);
+
+    ESP_LOGI("PKT", "TRANSPORT LAYER WRITTEN");
+
+    // length
+    memcpy(&buffer[pointer], &packet_size, sizeof(packet_size));
+    pointer+= sizeof(packet_size);
+
+    // BODY
+
+    // timestamp
+    if (protocol >= 0+'0') { // P0-P4 envian timestamp
+        ESP_LOGI("PKT", "PROTOCOL 0 WRITTEN");
+        unsigned int timestamp = time(NULL);
+        memcpy(&buffer[pointer], &timestamp, 4);
+        pointer += 4;
+    }
+    // battery (batt_level)
+    if (protocol >= 1+'0') { // P1-P4 envían batt_level
+        ESP_LOGI("PKT", "PROTOCOL 1 WRITTEN");
+        unsigned int random_num = esp_random() % 101;
+        ESP_LOGI("PKT","Battery Level: %i", random_num);
+        memcpy(&buffer[pointer], &random_num, 1);
+        pointer += 1;
+    }
+    
+    // temp, pres, hum, co
+    if (protocol >= 2+'0') { // P2-P4 envían temp, pres, hum, co
+        ESP_LOGI("PKT", "PROTOCOL 2 WRITTEN");
+        unsigned int random_temp  = 5 + (esp_random() % 26);
+        unsigned int random_pres  = 1000 + (esp_random() % 201);
+        unsigned int random_hum = 30 +  (esp_random() % 51);
+        float random_co = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+
+        memcpy(&buffer[pointer], &random_temp, 1);
+        pointer+=1;
+        memcpy(&buffer[pointer], &random_pres, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_hum, 1);
+        pointer+=1;
+        memcpy(&buffer[pointer], &random_co, 4);
+        pointer+=4;
+    
+    }
+
+    if (protocol == 3+'0') { // Solo p3 envia amp, fre y rms
+        ESP_LOGI("PKT", "PROTOCOL 3 WRITTEN");
+        float random_amp_x = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_amp_y = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_amp_z = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_fre_x = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_fre_y = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        float random_fre_z = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+
+        memcpy(&buffer[pointer], &random_amp_x, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_amp_y, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_amp_z, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_fre_x, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_fre_y, 4);
+        pointer+=4;
+        memcpy(&buffer[pointer], &random_fre_z, 4);
+        pointer+=4;
+    
+    }
+
+    if (protocol == 4+'0') { // Solo p4 envia acc y gyr        
+        ESP_LOGI("PKT", "PROTOCOL 4 WRITTEN");
+        // acc_x from -1000.0 to 1000.0
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
+        }
+        // acc_y from -1000.0 to 1000.0
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
+        }
+        // acc_z from -1000.0 to 1000.0
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
+        }
+        // gyr_x from -1000.0 to 1000.0
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
+        }
+        // gyr_y from -1000.0 to 1000.0
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
+        }
+        // gyr_z from -1000.0 to 1000.0
+        for (int i = 0; i < 2000; i++) {
+            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
+            memcpy(&buffer[pointer], &random_acc, 4);
+            pointer+=4;
+        }
+    }
+
+    ESP_LOGI("PKT", "PACKET SIZE:  %hu", packet_size);
+    ESP_LOGI("PKT", "Buffer creado");
+
+    return buffer;
+}
+
+
 void example_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param){
     esp_gatt_status_t status = ESP_GATT_OK;
     if (param->write.need_rsp){
@@ -354,14 +537,25 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
         ESP_LOGI(GATTS_TAG, "GATT_READ_EVT, conn_id %d, trans_id %" PRIu32 ", handle %d", param->read.conn_id, param->read.trans_id, param->read.handle);
         esp_gatt_rsp_t rsp;
         memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
+
+        // Generar paquete según variables globales
+        char* pack = create_packet(send_protocol, send_connection);
+
+        // Almacenar el paquete en la variable global
+        unsigned short packet_size;
+        memcpy(&packet_size, &pack[10], 2);
+        ESP_LOGI(GATTS_TAG, "packet_size %i", packet_size);
+
         rsp.attr_value.handle = param->read.handle;
-        rsp.attr_value.len = 4;
-        rsp.attr_value.value[0] = 0xde;
-        rsp.attr_value.value[1] = 0xed;
-        rsp.attr_value.value[2] = 0xbe;
-        rsp.attr_value.value[3] = 0xef;
+        rsp.attr_value.len = packet_size;
+        memcpy(rsp.attr_value.value, pack, packet_size);
+        // rsp.attr_value.value[0] = 0xde;
+        // rsp.attr_value.value[1] = 0xed;
+        // rsp.attr_value.value[2] = 0xbe;
+        // rsp.attr_value.value[3] = 0xef;
         esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id,
                                     ESP_GATT_OK, &rsp);
+        free(pack);
         break;
     }
     case ESP_GATTS_WRITE_EVT: {
@@ -369,41 +563,16 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
         if (!param->write.is_prep){
             ESP_LOGI(GATTS_TAG, "GATT_WRITE_EVT, value len %d, value :", param->write.len);
             esp_log_buffer_hex(GATTS_TAG, param->write.value, param->write.len);
-            if (gl_profile_tab[PROFILE_A_APP_ID].descr_handle == param->write.handle && param->write.len == 2){
-                uint16_t descr_value = param->write.value[1]<<8 | param->write.value[0];
-                if (descr_value == 0x0001){
-                    if (a_property & ESP_GATT_CHAR_PROP_BIT_NOTIFY){
-                        ESP_LOGI(GATTS_TAG, "notify enable");
-                        uint8_t notify_data[15];
-                        for (int i = 0; i < sizeof(notify_data); ++i)
-                        {
-                            notify_data[i] = i%0xff;
-                        }
-                        //the size of notify_data[] need less than MTU size
-                        esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, gl_profile_tab[PROFILE_A_APP_ID].char_handle,
-                                                sizeof(notify_data), notify_data, false);
-                    }
-                }else if (descr_value == 0x0002){
-                    if (a_property & ESP_GATT_CHAR_PROP_BIT_INDICATE){
-                        ESP_LOGI(GATTS_TAG, "indicate enable");
-                        uint8_t indicate_data[15];
-                        for (int i = 0; i < sizeof(indicate_data); ++i)
-                        {
-                            indicate_data[i] = i%0xff;
-                        }
-                        //the size of indicate_data[] need less than MTU size
-                        esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, gl_profile_tab[PROFILE_A_APP_ID].char_handle,
-                                                sizeof(indicate_data), indicate_data, true);
-                    }
-                }
-                else if (descr_value == 0x0000){
-                    ESP_LOGI(GATTS_TAG, "notify/indicate disable ");
-                }else{
-                    ESP_LOGE(GATTS_TAG, "unknown descr value");
-                    esp_log_buffer_hex(GATTS_TAG, param->write.value, param->write.len);
-                }
 
-            }
+            // Leer los dos bytes y reconocer protocolo y conexión (byte[0]: protocolo, byte[1]: conexión)
+            int protocol = param->write.value[0];
+            int connection = param->write.value[1];
+            // Printear para debug
+            ESP_LOGI(GATTS_TAG, "Protocolo: %i, Conexión: %i", protocol, connection);
+            // Guardar protocolo y conexión en variables globales como char
+            send_protocol = protocol+'0';
+            send_connection = connection+'0';
+
         }
         example_write_event_env(gatts_if, &a_prepare_write_env, param);
         break;
