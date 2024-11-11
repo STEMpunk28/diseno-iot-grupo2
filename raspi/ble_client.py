@@ -1,4 +1,3 @@
-import threading
 import asyncio
 import struct
 import sys
@@ -8,6 +7,8 @@ from models import *
 
 global command
 command = "None"
+
+loop = asyncio.get_event_loop()
 
 def populate_db(data2):
     print("data ====")
@@ -152,14 +153,14 @@ async def recv_data_async(ADDRESS):
         populate_db(char_value)
 
 def send_conf():
-    send_conf_async(ADDRESS)
+    loop.run_until_complete(send_conf_async(ADDRESS))
     return Conf.get_by_id(1).protocol, Conf.get_by_id(1).connection
 
 def recv_data():
-    recv_data_async(ADDRESS)
+    loop.run_until_complete(recv_data_async(ADDRESS))
 
 def recv_end():
-    recv_data_async(ADDRESS)
+    loop.run_until_complete(recv_data_async(ADDRESS))
 
 async def main(ADDRESS):
     if command == "Conf":
@@ -167,7 +168,4 @@ async def main(ADDRESS):
         command == "None"
     if command == "Recv":
         await recv_data_async(ADDRESS)
-    await send_conf_async(ADDRESS)
-    await recv_data_async(ADDRESS)
-
-asyncio.run(main(ADDRESS))
+        await asyncio.sleep(1)
