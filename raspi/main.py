@@ -119,7 +119,7 @@ class MainWindow(pw.QMainWindow):
             raw_data_list=[getattr(dt, columns_text[i]) for dt in raw_data]
             print(raw_data_list)
             self.plotGraph.plot(raw_data_list)
-            self.timerGraph.start(1000)  # Update every 1000 milliseconds (1 second)
+            self.timerGraph.start(2000)  # Update every 1000 milliseconds (1 second)
     
     def recv(self):
         print("Requesting data")
