@@ -8,7 +8,7 @@ class RealTimeCLI:
         self.running = True
         self.recieving = False
         self.recv_task = None
-        self.ESPs = ["4C:EB:D6:62:0B:B2", "4C:EB:D6:62:0B:B2"]  # Modificar por la correcta
+        self.ESPs = ["4C:EB:D6:62:0B:B2", "3C:61:05:65:A5:4E"]  # Modificar por la correcta
         self.current_ESP = None
         self.conn_type = -1
         self.protocol = -1
@@ -68,7 +68,7 @@ class RealTimeCLI:
             if not self.current_ESP:
                 print(f"Por favor, escoge una ESP con el commando 'choose'")
                 if self.conn_type == -1 and self.protocol == -1:
-                    print(f"Por favor, envia una configuracion a la ESP con el commando 'configure'")
+                    print(f"Por favor, envia una configuracion a la ESP con el comando 'configure'")
             elif not self.recieving:
                 self.recieving = True
                 if not self.recv_task or self.recv_task.done():
@@ -82,11 +82,11 @@ class RealTimeCLI:
                 if self.recv_task:
                     await self.recv_task
             else:
-                print("No hay recepcion de Datos.")
+                print("No hay recepcion de Datos por detener.")
 
         elif command == "disconnect":
             if self.recieving:
-                print(f"Por favor, deten la recepcion con el commando 'stop'")
+                print(f"Por favor, deten la recepcion con el comando 'stop'")
             else:
                 self.current_ESP = None
                 print(f"Desconectando de la ESP escogida")
@@ -102,9 +102,7 @@ class RealTimeCLI:
             self.to_graph = self.columns_text[self.index]
             self.data.clear()
             raw_data = Data.select(self.columns[self.index]).execute()
-            y_data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
-            x_data = list(range(len(y_data)))
-            self.data = list(zip(x_data, y_data))
+            self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
             print(f"Cambiando grafico a la variable {self.columns_text[self.index]}")
         
         elif command == "quit":
@@ -149,23 +147,19 @@ class RealTimeCLI:
         ax.set_xlim(0, 10)
         ax.set_ylim(-1, 1)
         ax.legend()
-        x_data, y_data = [], []
+        x_data = []
         ax.set_title("BLE Data")
 
         while self.running:
             if self.data:
                 self.data.clear()
                 raw_data = Data.select(self.columns[self.index]).execute()
-                y_data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
-                x_data = list(range(len(y_data)))
-                self.data = list(zip(x_data, y_data))
+                self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
+                x_data = list(range(len(self.data)))
                 line.set_label(self.to_graph)
-                x, y = self.data.pop(0)
-                x_data.append(x)
-                y_data.append(y)
-                line.set_data(x_data, y_data)
+                line.set_data(x_data, self.data)
                 ax.set_xlim(0, max(10, len(x_data)))
-                ax.set_ylim(min(y_data) - 1, max(y_data) + 1)
+                ax.set_ylim(min(self.data) - 1, max(self.data) + 1)
                 ax.legend()
 
             plt.pause(0.1)  # Allow the plot to update
