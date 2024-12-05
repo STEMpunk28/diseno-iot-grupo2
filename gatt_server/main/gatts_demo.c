@@ -518,6 +518,7 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
                                     ESP_GATT_OK, &rsp);
         free(pack);
         if (send_connection == 1+'0') {
+            vTaskDelay(1000/portTICK_PERIOD_MS);
             ESP_LOGI(GATTS_TAG, "Comunicación discontinua.");
             ESP_LOGI(GATTS_TAG, "Durmiendo...");
             esp_deep_sleep(1000000);
