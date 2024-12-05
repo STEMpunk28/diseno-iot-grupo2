@@ -12,9 +12,9 @@ class RealTimeCLI:
         self.current_ESP = None
         self.conn_type = -1
         self.protocol = -1
-        self.columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co, Data.amp_x,
+        self.columns = [Data.timestamp, Data.batt_level, Data.temp, Data.press, Data.hum, Data.co, Data.amp_x,
                         Data.amp_y, Data.amp_z, Data.fre_x, Data.fre_y, Data.fre_z, Data.rms]
-        self.columns_text = ['batt_level', 'temp', 'press', 'hum', 'co', 'amp_x',
+        self.columns_text = ['timestamp', 'batt_level', 'temp', 'press', 'hum', 'co', 'amp_x',
                              'amp_y', 'amp_z', 'fre_x', 'fre_y', 'fre_z', 'rms']
         self.to_graph = "None"
         self.index = -1
@@ -33,16 +33,7 @@ class RealTimeCLI:
             await self.handle_command(command)
 
     async def handle_command(self, command):
-        if command.startswith("add"):
-            try:
-                _, x, y = command.split()
-                x, y = float(x), float(y)
-                self.data.append((x, y))
-                print(f"Added point ({x}, {y}) to the graph.")
-            except ValueError:
-                print("Invalid command. Usage: add x y")
-        
-        elif command == "choose":
+        if command == "choose":
             print(f"Eligue una de las siguientes ESPs:")
             i = 0
             for esp in self.ESPs:
@@ -57,6 +48,18 @@ class RealTimeCLI:
                 ble_client.ADDRESS = self.current_ESP
             print(f"Conectado a ESP {self.current_ESP}")
         
+        elif command.startswith("setconf"):
+            try:
+                _, prot, conn = command.split()
+                prot = int(prot)
+                conn = int(conn)
+                Conf.update({Conf.protocol:prot, Conf.connection:conn}).where(Conf.id == 0).execute()
+                real_prot = (Conf.select(Conf.protocol).where(Conf.id == 0))
+                real_conn = (Conf.select(Conf.connection).where(Conf.id == 0))
+                print(f"New configuration is ({real_prot}, {real_conn}).")
+            except ValueError:
+                print("Comando invalido. Uso: setconf [PROTOCOLO] [COMUNICACION]")
+
         elif command == "configure":
             if not self.current_ESP:
                 print("Por favor, escoge una ESP con el comando 'choose'")
@@ -74,7 +77,7 @@ class RealTimeCLI:
                 if not self.recv_task or self.recv_task.done():
                     self.recv_task = asyncio.create_task(self.recv_data_task())
                 print(f"Recibiendo datos de la ESP escogida")
-        
+
         elif command == "stop":
             if self.recieving:
                 self.recieving = False
@@ -152,7 +155,6 @@ class RealTimeCLI:
 
         while self.running:
             if self.data:
-                print("Actualizando grafico")
                 self.data.clear()
                 raw_data = Data.select(self.columns[self.index]).execute()
                 self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]

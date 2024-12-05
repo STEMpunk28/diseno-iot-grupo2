@@ -35,6 +35,7 @@
 
 #include "time.h"
 #include "esp_mac.h"
+#include "esp_sleep.h"
 #include <stdlib.h>
 #include "math.h"
 #include "esp_random.h"
@@ -283,10 +284,6 @@ char* create_packet(char protocol, char transport) {
             ESP_LOGI(GATTS_TAG, "packet 55");
             packet_size = 55;
             break;
-        case 4+'0':
-            ESP_LOGI(GATTS_TAG, "packet 48027");
-            packet_size = 48027;
-            break;
     }
 
     char* buffer = malloc(packet_size);
@@ -368,6 +365,8 @@ char* create_packet(char protocol, char transport) {
         float random_fre_x = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
         float random_fre_y = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
         float random_fre_z = 30 + ((float)170)*((float) esp_random()/(float) UINT_MAX);
+        // rms es sqrt(random_amp_x^2 + random_amp_y^2 + random_amp_z^2)
+        float rms = sqrt(random_amp_x*random_amp_x + random_amp_y*random_amp_y + random_amp_z*random_amp_z);
 
         memcpy(&buffer[pointer], &random_amp_x, 4);
         pointer+=4;
@@ -381,47 +380,9 @@ char* create_packet(char protocol, char transport) {
         pointer+=4;
         memcpy(&buffer[pointer], &random_fre_z, 4);
         pointer+=4;
+        memcpy(&buffer[pointer], &rms, 4);
+        pointer+=4;
     
-    }
-
-    if (protocol == 4+'0') { // Solo p4 envia acc y gyr        
-        ESP_LOGI("PKT", "PROTOCOL 4 WRITTEN");
-        // acc_x from -1000.0 to 1000.0
-        for (int i = 0; i < 2000; i++) {
-            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
-            memcpy(&buffer[pointer], &random_acc, 4);
-            pointer+=4;
-        }
-        // acc_y from -1000.0 to 1000.0
-        for (int i = 0; i < 2000; i++) {
-            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
-            memcpy(&buffer[pointer], &random_acc, 4);
-            pointer+=4;
-        }
-        // acc_z from -1000.0 to 1000.0
-        for (int i = 0; i < 2000; i++) {
-            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
-            memcpy(&buffer[pointer], &random_acc, 4);
-            pointer+=4;
-        }
-        // gyr_x from -1000.0 to 1000.0
-        for (int i = 0; i < 2000; i++) {
-            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
-            memcpy(&buffer[pointer], &random_acc, 4);
-            pointer+=4;
-        }
-        // gyr_y from -1000.0 to 1000.0
-        for (int i = 0; i < 2000; i++) {
-            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
-            memcpy(&buffer[pointer], &random_acc, 4);
-            pointer+=4;
-        }
-        // gyr_z from -1000.0 to 1000.0
-        for (int i = 0; i < 2000; i++) {
-            float random_acc = -16 + ((float)32)*((float) esp_random()/(float) UINT_MAX);
-            memcpy(&buffer[pointer], &random_acc, 4);
-            pointer+=4;
-        }
     }
 
     ESP_LOGI("PKT", "PACKET SIZE:  %hu", packet_size);
@@ -556,6 +517,11 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
         esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id,
                                     ESP_GATT_OK, &rsp);
         free(pack);
+        if (send_connection == 1+'0') {
+            ESP_LOGI(GATTS_TAG, "Comunicación discontinua.");
+            ESP_LOGI(GATTS_TAG, "Durmiendo...");
+            esp_deep_sleep(1000000);
+        }
         break;
     }
     case ESP_GATTS_WRITE_EVT: {

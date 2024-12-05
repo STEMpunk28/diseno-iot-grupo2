@@ -139,9 +139,12 @@ async def send_conf_async(ADDRESS):
 
 async def recv_data_async(ADDRESS):
     async with BleakClient(ADDRESS) as client:
+        # Si es discontinua, mandar la configuracion
+        if ((Conf.select(Conf.connection).where(Conf.id == 0)) == 1):
+            await send_conf_async(ADDRESS)
         # Pedimos un paquete a esa caracteristica
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
-        #print(get_bytes(char_value))
+        # print(get_bytes(char_value))
         # Lo añadimos a la base de datos
         populate_db(char_value)
 
