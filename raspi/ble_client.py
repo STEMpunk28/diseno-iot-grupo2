@@ -145,7 +145,7 @@ async def recv_data_async(ADDRESS):
         print("Despertado.")
     async with BleakClient(ADDRESS) as client:
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
-        # print(get_bytes(char_value))
+        print(get_bytes(char_value))
         # Lo añadimos a la base de datos
         populate_db(char_value)
 
