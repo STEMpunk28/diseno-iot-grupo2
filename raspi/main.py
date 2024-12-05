@@ -9,8 +9,8 @@ class RealTimeCLI:
         self.recieving = False
         self.ESPs = []
         self.current_ESP = None
-        self.conn_type = None
-        self.protocol = None
+        self.conn_type = -1
+        self.protocol = -1
         self.columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co]
         self.columns_text = ['batt_level', 'temp', 'press', 'hum', 'co']
         self.to_graph = "None"
@@ -18,7 +18,7 @@ class RealTimeCLI:
 
     async def run(self):
         # Añadir las ESPs a la lista
-        
+        print(f"Añadiendo ESPs a la lista")
 
         # Comenzar la task del grafico
         asyncio.create_task(self.update_graph())
@@ -62,7 +62,7 @@ class RealTimeCLI:
         elif command == "recieve":
             if not self.current_ESP:
                 print(f"Por favor, escoge una ESP con el commando 'choose'")
-                if not self.conn_type and not self.protocol:
+                if self.conn_type == -1 and self.protocol == -1:
                     print(f"Por favor, envia una configuracion a la ESP con el commando 'configure X Y'")
             else:
                 self.recieving = True
@@ -85,7 +85,7 @@ class RealTimeCLI:
             for variable in self.columns_text:
                 print(f"{i} | {variable}")
                 i += 1
-            var = input("Escribe el numero correspondiente: ")
+            var = int(input("Escribe el numero correspondiente: "))
             self.to_graph = self.columns_text[var]
             raw_data = Data.select(self.columns[var]).execute()
             self.data=[getattr(dt, self.columns_text[var]) for dt in raw_data] #Falta agregar y, deberia ser el tiempo de cada medida
@@ -94,10 +94,29 @@ class RealTimeCLI:
         elif command == "quit":
             self.running = False
             print("Exiting...")
-        
+
+        elif command == "help":
+            self.show_help()
+
         else:
             print("Comando desconocido. escribe help para ver los comandos")
 
+    def show_help(self):
+        COMMANDS = {
+            "choose": "Elige con cual ESP conectarse de una lista.",
+            "configure [CON] [PRO]": "Configura la ESP, donde [CON] es el tipo de conexion y [PRO] el protocolo.",
+            "recieve": "Comienza la recepcion de datos.",
+            "stop": "Finaliza la recepcion de datos.",
+            "disconnect": "Desconecta de la ESP actual.",
+            "graph [VAR]": "Cambia el grafico tal que este muestre los datos de la variable [VAR].",
+            "quit": "Cerrar la CLI.",
+            "help": "Mostrar los comandos disponibles."
+        }
+
+        print("Available commands:")
+        for cmd, desc in COMMANDS.items():
+            print(f"  {cmd} | {desc}")
+            
     async def update_graph(self):
         # Set up the plot
         plt.ion()
