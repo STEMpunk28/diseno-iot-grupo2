@@ -53,7 +53,7 @@ class RealTimeCLI:
                 _, prot, conn = command.split()
                 prot = int(prot)
                 conn = int(conn)
-                Conf.update({Conf.protocol:prot, Conf.connection:conn}).where(Conf.id == 0).execute()
+                Conf.update({Conf.protocol:prot, Conf.connection:conn}).where(Conf.id == 1).execute()
                 real_prot = Conf.get_by_id(1).protocol
                 real_conn = Conf.get_by_id(1).connection
                 print(f"New configuration is ({real_prot}, {real_conn}).")
