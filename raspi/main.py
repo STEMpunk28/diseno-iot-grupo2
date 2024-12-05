@@ -11,8 +11,10 @@ class RealTimeCLI:
         self.current_ESP = None
         self.conn_type = -1
         self.protocol = -1
-        self.columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co]
-        self.columns_text = ['batt_level', 'temp', 'press', 'hum', 'co']
+        self.columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co, Data.amp_x,
+                        Data.amp_y, Data.amp_z, Data.fre_x, Data.fre_y, Data.fre_z, Data.rms]
+        self.columns_text = ['batt_level', 'temp', 'press', 'hum', 'co', 'amp_x',
+                             'amp_y', 'amp_z', 'fre_x', 'fre_y', 'fre_z', 'rms']
         self.to_graph = "None"
         self.data = []
 
@@ -108,7 +110,7 @@ class RealTimeCLI:
             "recieve": "Comienza la recepcion de datos.",
             "stop": "Finaliza la recepcion de datos.",
             "disconnect": "Desconecta de la ESP actual.",
-            "graph [VAR]": "Cambia el grafico tal que este muestre los datos de la variable [VAR].",
+            "graph": "Cambia el grafico tal que este muestre los datos de la variable escogida.",
             "quit": "Cerrar la CLI.",
             "help": "Mostrar los comandos disponibles."
         }
@@ -116,7 +118,7 @@ class RealTimeCLI:
         print("Available commands:")
         for cmd, desc in COMMANDS.items():
             print(f"  {cmd} | {desc}")
-            
+
     async def update_graph(self):
         # Set up the plot
         plt.ion()
@@ -126,15 +128,18 @@ class RealTimeCLI:
         ax.set_ylim(-1, 1)
         ax.legend()
         x_data, y_data = [], []
+        ax.set_title("BLE Data")
 
         while self.running:
             if self.data:
+                line.set_label(self.to_graph)
                 x, y = self.data.pop(0)
                 x_data.append(x)
                 y_data.append(y)
                 line.set_data(x_data, y_data)
                 ax.set_xlim(0, max(10, len(x_data)))
                 ax.set_ylim(min(y_data) - 1, max(y_data) + 1)
+                ax.legend()
 
             plt.pause(0.1)  # Allow the plot to update
             await asyncio.sleep(0.1)  # Yield control to the event loop
