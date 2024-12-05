@@ -1,7 +1,7 @@
 import asyncio
 import struct
 from bleak import BleakClient
-from models import *
+#from models import *
 
 global command
 command = "None"
@@ -150,20 +150,9 @@ async def recv_data_async(ADDRESS):
         # Lo añadimos a la base de datos
         populate_db(char_value)
 
-def send_conf():
-    loop.run_until_complete(send_conf_async(ADDRESS))
+async def send_conf():
+    await send_conf_async(ADDRESS)
     return Conf.get_by_id(1).protocol, Conf.get_by_id(1).connection
 
-def recv_data():
-    loop.run_until_complete(recv_data_async(ADDRESS))
-
-def recv_end():
-    loop.run_until_complete(recv_data_async(ADDRESS))
-
-async def main(ADDRESS):
-    if command == "Conf":
-        await send_conf_async(ADDRESS)
-        command == "None"
-    if command == "Recv":
-        await recv_data_async(ADDRESS)
-        await asyncio.sleep(1)
+async def recv_data():
+    await recv_data_async(ADDRESS)

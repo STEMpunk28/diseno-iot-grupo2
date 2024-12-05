@@ -1,18 +1,17 @@
 import asyncio
 import matplotlib.pyplot as plt
 import ble_client
-from models import *
+#from models import *
 
 class RealTimeCLI:
     def __init__(self):
         self.running = True
         self.recieving = False
-        self.ESPs = []
+        self.ESPs = ["4C:EB:D6:62:0B:B2", "4C:EB:D6:62:0B:B2"]  # Modificar por la correcta
         self.current_ESP = None
         self.conn_type = -1
         self.protocol = -1
-        self.columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co, Data.amp_x,
-                        Data.amp_y, Data.amp_z, Data.fre_x, Data.fre_y, Data.fre_z, Data.rms]
+        self.columns = []
         self.columns_text = ['batt_level', 'temp', 'press', 'hum', 'co', 'amp_x',
                              'amp_y', 'amp_z', 'fre_x', 'fre_y', 'fre_z', 'rms']
         self.to_graph = "None"
@@ -46,28 +45,31 @@ class RealTimeCLI:
             for esp in self.ESPs:
                 print(f"{i} | {esp}")
                 i += 1
-            chosen = input("Escribe el numero correspondiente: ")
+            chosen = int(input("Escribe el numero correspondiente: "))
             if chosen == 0:
-                self.current_ESP == self.ESPs[0]
+                self.current_ESP = self.ESPs[0]
+                ble_client.ADDRESS = self.current_ESP
             elif chosen == 1:
-                self.current_ESP == self.ESPs[1]
+                self.current_ESP = self.ESPs[1]
+                ble_client.ADDRESS = self.current_ESP
+            print(f"Conectado a ESP {self.current_ESP}")
         
-        elif command.startswith("configure"):
-            try:
-                _, conn, protocol = command.split()
-                #Funcion del BLE que envia el protocolo
-                self.conn_type, self.protocol = conn, protocol
-                print(f"Enviando configuracion ({conn}, {protocol}) a la ESP.")
-            except ValueError:
-                print("Invalid command. Usage: configure x y")
+        elif command == "configure":
+            if not self.current_ESP:
+                print("Por favor, escoge una ESP con el comando 'choose'")
+            else:
+                self.conn_type, self.protocol = await ble_client.send_conf()
+                print(f"Enviando configuracion ({self.conn_type}, {self.protocol}) a la ESP.")
         
         elif command == "recieve":
             if not self.current_ESP:
                 print(f"Por favor, escoge una ESP con el commando 'choose'")
                 if self.conn_type == -1 and self.protocol == -1:
-                    print(f"Por favor, envia una configuracion a la ESP con el commando 'configure X Y'")
+                    print(f"Por favor, envia una configuracion a la ESP con el commando 'configure'")
             else:
                 self.recieving = True
+                await ble_client.recv_data()
+                await asyncio.sleep(1)  # Add delay to prevent excessive polling
                 print(f"Recibiendo datos de la ESP escogida")
         
         elif command == "stop":
@@ -106,7 +108,7 @@ class RealTimeCLI:
     def show_help(self):
         COMMANDS = {
             "choose": "Elige con cual ESP conectarse de una lista.",
-            "configure [CON] [PRO]": "Configura la ESP, donde [CON] es el tipo de conexion y [PRO] el protocolo.",
+            "configure": "Configura la ESP con los valores de la database actuales.",
             "recieve": "Comienza la recepcion de datos.",
             "stop": "Finaliza la recepcion de datos.",
             "disconnect": "Desconecta de la ESP actual.",
