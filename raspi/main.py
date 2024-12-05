@@ -27,7 +27,7 @@ class RealTimeCLI:
         # Comenzar la task del grafico
         asyncio.create_task(self.update_graph())
 
-        print("Hola, esta es la CLI de tu conexion Respi-ESP. Escribe 'help' para ver los comandos.")
+        print("Hola, esta es la CLI de tu conexion Raspi-ESP. Escribe 'help' para ver los comandos.")
         while self.running:
             command = await asyncio.to_thread(input, "(iot) ")
             await self.handle_command(command)

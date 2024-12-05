@@ -152,7 +152,7 @@ async def recv_data_async(ADDRESS):
             await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic)
 
             # 
-            await asyncio.sleep(3)
+            await asyncio.sleep(6)
         
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
         # print(get_bytes(char_value))
