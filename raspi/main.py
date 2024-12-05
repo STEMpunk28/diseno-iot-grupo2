@@ -1,151 +1,117 @@
-import sys
-sys.coinit_flags = 0
-import PyQt5.QtWidgets as pw
-import pyqtgraph as pg
+import asyncio
+import matplotlib.pyplot as plt
 import ble_client
-from PyQt5.QtCore import pyqtSlot, QTimer
 from models import *
 
-class MainWindow(pw.QMainWindow):
+class RealTimeCLI:
     def __init__(self):
-        super().__init__()
-        #Ajustes de parametros iniciales
-        self.title = 'Bluetooth Receptor'
-        self.left = 50
-        self.top = 50
-        self.width = 700
-        self.height = 800
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.running = True
+        self.ESPs = []
+        self.current_ESP = None
+        self.conn_type = None
+        self.protocol = None
+        self.columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co]
+        self.columns_text = ['batt_level', 'temp', 'press', 'hum', 'co']
+        self.to_graph = "None"
+        self.data = []
 
-        # Create a QTimer that request data every X seconds
-        self.timerRecv = QTimer(self)
-        self.timerRecv.timeout.connect(self.recv)
-
-        # Create a QTimer that updates the graph every second
-        self.timerGraph = QTimer(self)
-        self.timerGraph.timeout.connect(self.update_graph)
-
-        # Boton para enviar configuracion
-        windowBtn = pw.QPushButton('Enviar configuracion', self)
-        # Conectar con funcion 
-        windowBtn.clicked.connect(self.send_conf)
-
-        # Label para mostrar protocolo y conexion actual
-        self.windowLabel = pw.QLabel('Protocolo: ' + str(protocol) + ' Conexion: ' + str(connection))
-
-        # Boton que inicia recepcion
-        requestBtn = pw.QPushButton('Iniciar recepcion', self)
-        # Conectar a funcion request
-        requestBtn.clicked.connect(self.request)
-
-        # Boton para cerrar conexion
-        closeBtn = pw.QPushButton('Cerrar conexión', self)
-        # Conectar con funcion end
-        closeBtn.clicked.connect(self.end)
-
-        # Añadir selector de variable
-        self.GraphSelect = pw.QComboBox()
-        self.GraphSelect.addItems(['elige una variable', 'batt_level', 'temp', 'pres',
-                              'hum', 'co', 'amp_x', 'amp_y', 'amp_z',
-                              'fre_x', 'fre_y', 'fre_z', 'rms'])
-
-        # Boton para mostrar grafico
-        graphBtn = pw.QPushButton('Mostrar grafico', self)
-        # Conectar con funcion change_graph
-        graphBtn.clicked.connect(self.change_graph)
-
-        # Grafico para todas las variables
-        self.plotGraph = pg.PlotWidget()
-        # Leyenda del grafico
-        self.plotGraph.setTitle("Placeholder")
-        self.plotGraph.setLabel("left", "Placeholder")
-        self.plotGraph.setLabel("bottom", "Tiempo (s)")
-
-        # Crear layouts
-        mainLayout = pw.QVBoxLayout()
-        btnLayout = pw.QGridLayout()
-        graphLayout = pw.QVBoxLayout()
-
-
-        # Agregar widgets
-        btnLayout.addWidget(windowBtn, 0, 0, 1 , 2)
-        btnLayout.addWidget(self.windowLabel, 1, 0, 1, 2)
-        btnLayout.addWidget(requestBtn, 2, 0)
-        btnLayout.addWidget(closeBtn, 2, 1)
-        btnLayout.addWidget(self.GraphSelect, 3, 0)
-        btnLayout.addWidget(graphBtn, 3, 1)
-        graphLayout.addWidget(self.plotGraph)
-
-        # Agregar sublayouts al principal
-        mainLayout.addLayout(btnLayout)
-        mainLayout.addLayout(graphLayout)
-
-        # Set layout
-        widget = pw.QWidget()
-        widget.setLayout(mainLayout)
-        self.setCentralWidget(widget)
-    
-    @pyqtSlot()
-    def send_conf(self):
-        print("Sending configuration")
-        global protocol, connection
-
-        ble_client.send_conf()
-
-        self.windowLabel.text = 'Protocolo: ' + str(protocol) + ' Conexion: ' + str(connection)
-
-    @pyqtSlot()
-    def request(self):
-        print("Start Requesting data")
-        self.timerRecv.start(3000)  # Update every 1000 milliseconds (1 second)
+    async def run(self):
+        # Añadir las ESPs a la lista
         
 
-    @pyqtSlot()
-    def end(self):
-        #Cerrar conexion, reiniciando ESP
-        print("Stop Requesting Data")
-        self.timerRecv.stop()
+        # Comenzar la task del grafico
+        asyncio.create_task(self.update_graph())
 
-    @pyqtSlot()
-    def change_graph(self):
-        variable_graph = self.GraphSelect.currentText()
-        i = self.GraphSelect.currentIndex()-1
-        if not variable_graph == 'elige una variable':
-            self.plotGraph.clear()
-            self.plotGraph.setTitle(variable_graph + ' vs. tiempo')
-            self.plotGraph.setLabel("left", variable_graph)
-            # Actualiza el grafico con los datos guardados
-            raw_data = Data.select(columns[i]).execute()
-            raw_data_list=[getattr(dt, columns_text[i]) for dt in raw_data]
-            print(raw_data_list)
-            self.plotGraph.plot(raw_data_list)
-            self.timerGraph.start(2000)  # Update every 1000 milliseconds (1 second)
-    
-    def recv(self):
-        print("Requesting data")
-        ble_client.recv_data()
+        print("Hola, esta es la CLI de tu conexion Respi-ESP. Escribe 'help' para ver los comandos.")
+        while self.running:
+            command = await asyncio.to_thread(input, "(iot) ")
+            await self.handle_command(command)
 
-    
-    def update_graph(self):
-        variable_graph = self.GraphSelect.currentText()
-        i = self.GraphSelect.currentIndex()-1
-        if not variable_graph == 'elige una variable':
-            #self.plotGraph.clear()
-            # Actualiza el grafico con los datos guardados
-            raw_data = Data.select(columns[i]).execute()
-            raw_data_list=[getattr(dt, columns_text[i]) for dt in raw_data]
-            self.plotGraph.plot(raw_data_list)
+    async def handle_command(self, command):
+        if command.startswith("add"):
+            try:
+                _, x, y = command.split()
+                x, y = float(x), float(y)
+                self.data.append((x, y))
+                print(f"Added point ({x}, {y}) to the graph.")
+            except ValueError:
+                print("Invalid command. Usage: add x y")
+        
+        elif command == "choose":
+            print(f"Eligue una de las siguientes ESPs:")
+            i = 0
+            for esp in self.ESPs:
+                print(f"{i} | {esp}")
+                i += 1
+            chosen = input("Escribe el numero correspondiente: ")
+            if chosen == 0:
+                self.current_ESP == self.ESPs[0]
+            elif chosen == 1:
+                self.current_ESP == self.ESPs[1]
+        
+        elif command.startswith("configure"):
+            try:
+                _, conn, protocol = command.split()
+                #Funcion del BLE que envia el protocolo
+                self.conn_type, self.protocol = conn, protocol
+                print(f"Enviando configuracion ({conn}, {protocol}) a la ESP.")
+            except ValueError:
+                print("Invalid command. Usage: configure x y")
+        
+        elif command == "recieve":
+            if not self.current_ESP:
+                print(f"Por favor, escoge una ESP con el commando 'choose'")
+                if not self.conn_type and not self.protocol:
+                    print(f"Por favor, envia una configuracion a la ESP con el commando 'configure X Y'")
+            else:
+                print(f"Recibiendo datos de la ESP escogida")
+        
+        elif command == "graph":
+            print(f"Eligue una de las siguientes variables:")
+            i = 0
+            for variable in self.columns_text:
+                print(f"{i} | {variable}")
+                i += 1
+            var = input("Escribe el numero correspondiente: ")
+            self.to_graph = self.columns_text[var]
+            raw_data = Data.select(self.columns[var]).execute()
+            self.data=[getattr(dt, self.columns_text[var]) for dt in raw_data] #Falta agregar y, deberia ser el tiempo de cada medida
+            print(f"Cambiando grafico a la variable {self.columns_text[var]}")
+        
+        elif command == "quit":
+            self.running = False
+            print("Exiting...")
+        
+        else:
+            print("Comando desconocido. escribe help para ver los comandos")
 
+    async def update_graph(self):
+        # Set up the plot
+        plt.ion()
+        fig, ax = plt.subplots()
+        line, = ax.plot([], [], label=self.to_graph)
+        ax.set_xlim(0, 10)
+        ax.set_ylim(-1, 1)
+        ax.legend()
+        x_data, y_data = [], []
 
-#Variables globales
-protocol = -1
-connection = 'None'
-columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co]
-columns_text = ['batt_level', 'temp', 'press', 'hum', 'co']
+        while self.running:
+            if self.data:
+                x, y = self.data.pop(0)
+                x_data.append(x)
+                y_data.append(y)
+                line.set_data(x_data, y_data)
+                ax.set_xlim(0, max(10, len(x_data)))
+                ax.set_ylim(min(y_data) - 1, max(y_data) + 1)
 
-if __name__ == '__main__':
-    app = pw.QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    app.exec()
+            plt.pause(0.1)  # Allow the plot to update
+            await asyncio.sleep(0.1)  # Yield control to the event loop
+
+        plt.close(fig)
+
+if __name__ == "__main__":
+    cli = RealTimeCLI()
+    try:
+        asyncio.run(cli.run())
+    except RuntimeError as e:
+        print(f"Runtime Error: {e}")
