@@ -91,7 +91,7 @@ class RealTimeCLI:
                 print(f"Desconectando de la ESP escogida")
         
         elif command == "graph":
-            print(f"Eligue una de las siguientes variables:")
+            print(f"Elige una de las siguientes variables:")
             i = 0
             for variable in self.columns_text:
                 print(f"{i} | {variable}")
@@ -124,7 +124,7 @@ class RealTimeCLI:
             "help": "Mostrar los comandos disponibles."
         }
 
-        print("Comandos  commands:")
+        print("Comandos disponibles:")
         for cmd, desc in COMMANDS.items():
             print(f"  {cmd} | {desc}")
 

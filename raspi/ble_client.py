@@ -3,11 +3,6 @@ import struct
 from bleak import BleakClient
 from models import *
 
-global command
-command = "None"
-
-loop = asyncio.get_event_loop()
-
 def populate_db(data2):
     print("data ====")
     print(data2)
