@@ -54,8 +54,8 @@ class RealTimeCLI:
                 prot = int(prot)
                 conn = int(conn)
                 Conf.update({Conf.protocol:prot, Conf.connection:conn}).where(Conf.id == 0).execute()
-                real_prot = (Conf.select(Conf.protocol).where(Conf.id == 0))
-                real_conn = (Conf.select(Conf.connection).where(Conf.id == 0))
+                real_prot = Conf.get_by_id(1).protocol
+                real_conn = Conf.get_by_id(1).connection
                 print(f"New configuration is ({real_prot}, {real_conn}).")
             except ValueError:
                 print("Comando invalido. Uso: setconf [PROTOCOLO] [COMUNICACION]")
@@ -121,6 +121,7 @@ class RealTimeCLI:
     def show_help(self):
         COMMANDS = {
             "choose": "Elige con cual ESP conectarse de una lista.",
+            "setconf [PROT] [COM]": "Modifica la configuracion guardada en la base de datos.",
             "configure": "Configura la ESP con los valores de la database actuales.",
             "recieve": "Comienza la recepcion de datos.",
             "stop": "Finaliza la recepcion de datos.",
