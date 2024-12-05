@@ -150,6 +150,7 @@ async def recv_data_async(ADDRESS):
             characteristic = characteristic_1 + characteristic_2
             #print(characteristic)
             await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic)
+        
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
         # print(get_bytes(char_value))
         # Lo añadimos a la base de datos
