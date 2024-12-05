@@ -1,7 +1,7 @@
 import asyncio
 import matplotlib.pyplot as plt
 import ble_client
-#from models import *
+from models import *
 
 class RealTimeCLI:
     def __init__(self):
@@ -11,7 +11,8 @@ class RealTimeCLI:
         self.current_ESP = None
         self.conn_type = -1
         self.protocol = -1
-        self.columns = []
+        self.columns = [Data.batt_level, Data.temp, Data.press, Data.hum, Data.co, Data.amp_x,
+                        Data.amp_y, Data.amp_z, Data.fre_x, Data.fre_y, Data.fre_z, Data.rms]
         self.columns_text = ['batt_level', 'temp', 'press', 'hum', 'co', 'amp_x',
                              'amp_y', 'amp_z', 'fre_x', 'fre_y', 'fre_z', 'rms']
         self.to_graph = "None"

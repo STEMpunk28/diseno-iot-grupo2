@@ -1,7 +1,7 @@
 import asyncio
 import struct
 from bleak import BleakClient
-#from models import *
+from models import *
 
 global command
 command = "None"
