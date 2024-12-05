@@ -1,5 +1,3 @@
-import sys
-sys.coinit_flags = 0
 import asyncio
 import struct
 from bleak import BleakClient

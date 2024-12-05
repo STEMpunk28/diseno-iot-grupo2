@@ -6,6 +6,7 @@ from models import *
 class RealTimeCLI:
     def __init__(self):
         self.running = True
+        self.recieving = False
         self.ESPs = []
         self.current_ESP = None
         self.conn_type = None
@@ -64,7 +65,19 @@ class RealTimeCLI:
                 if not self.conn_type and not self.protocol:
                     print(f"Por favor, envia una configuracion a la ESP con el commando 'configure X Y'")
             else:
+                self.recieving = True
                 print(f"Recibiendo datos de la ESP escogida")
+        
+        elif command == "stop":
+            self.recieving = False
+            print(f"Deteniendo la recepcion de datos de la ESP escogida")
+
+        elif command == "disconnect":
+            if self.recieving:
+                print(f"Por favor, deten la recepcion con el commando 'stop'")
+            else:
+                self.current_ESP = None
+                print(f"Desconectando de la ESP escogida")
         
         elif command == "graph":
             print(f"Eligue una de las siguientes variables:")
