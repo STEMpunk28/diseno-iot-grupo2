@@ -4,8 +4,8 @@ from bleak import BleakClient
 from models import *
 
 def populate_db(data2):
-    print("data ====")
-    print(data2)
+    #print("data ====")
+    #print(data2)
     # print(f'data size: {len(data2)}')
     header = data2[:12]
     body = data2[12:]
@@ -35,7 +35,7 @@ def populate_db(data2):
     if not (Dev.select().where(Dev.mac_adress == mac_seq).exists()):
         Dev.insert(mac_adress=mac_seq).execute()
     dev_id = (Dev.select(Dev.device_id).where(Dev.mac_adress == mac_seq))
-    print(dev_id)
+    #print(dev_id)
     insert_id = Log.insert(
         msg_id = msg,
         device_mac=mac_seq,
@@ -66,7 +66,7 @@ def populate_db(data2):
         temp = body[5]
         press = struct.unpack('I',body[6:10])[0]
         hum = body[10]
-        print([x for x in body[11:]])
+        #print([x for x in body[11:]])
         # print(f'BATT: {batt} TEMP:  {temp} PRESS:{press} HUM:{hum}')
         co = struct.unpack('f',body[11:])[0]
         # print(f'BATT: {batt} TEMP:  {temp} PRESS:{press} HUM:{hum} CO:{co}')
@@ -109,7 +109,7 @@ def populate_db(data2):
             fre_y=fre_y,
             fre_z=fre_z,
             rms=rms).execute()
-    print('[Data stored]')
+    #print('[Data stored]')
 
 def convert_to_128bit_uuid(short_uuid):
     # Usada para convertir un UUID de 16 bits a 128 bits
@@ -134,14 +134,14 @@ async def send_conf_async(ADDRESS):
         characteristic_2 = bytes([conf_trans])
         # Concatenamos los bytes
         characteristic = characteristic_1 + characteristic_2
-        print(characteristic)
+        #print(characteristic)
         await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic)
 
 async def recv_data_async(ADDRESS):
     async with BleakClient(ADDRESS) as client:
         # Pedimos un paquete a esa caracteristica
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
-        print(get_bytes(char_value))
+        #print(get_bytes(char_value))
         # Lo añadimos a la base de datos
         populate_db(char_value)
 

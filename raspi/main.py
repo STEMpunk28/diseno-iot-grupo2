@@ -152,6 +152,7 @@ class RealTimeCLI:
 
         while self.running:
             if self.data:
+                print("Actualizando grafico")
                 self.data.clear()
                 raw_data = Data.select(self.columns[self.index]).execute()
                 self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
@@ -162,8 +163,8 @@ class RealTimeCLI:
                 ax.set_ylim(min(self.data) - 1, max(self.data) + 1)
                 ax.legend()
 
-            plt.pause(0.1)  # Allow the plot to update
-            await asyncio.sleep(0.1)  # Yield control to the event loop
+            plt.pause(1)  # Allow the plot to update
+            await asyncio.sleep(1)  # Yield control to the event loop
 
         plt.close(fig)
 
