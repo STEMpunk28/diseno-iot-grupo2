@@ -56,7 +56,7 @@ class RealTimeCLI:
                 Conf.update({Conf.protocol:prot, Conf.connection:conn}).where(Conf.id == 1).execute()
                 real_prot = Conf.get_by_id(1).protocol
                 real_conn = Conf.get_by_id(1).connection
-                print(f"New configuration is ({real_prot}, {real_conn}).")
+                print(f"La nueva configuracion es ({real_prot}, {real_conn}).")
             except ValueError:
                 print("Comando invalido. Uso: setconf [PROTOCOLO] [COMUNICACION]")
 

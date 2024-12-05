@@ -141,8 +141,15 @@ async def recv_data_async(ADDRESS):
     async with BleakClient(ADDRESS) as client:
         # Si es discontinua, mandar la configuracion
         if (Conf.get_by_id(1).connection == 1):
-            await send_conf_async(ADDRESS)
-        # Pedimos un paquete a esa caracteristica
+            conf_prot = Conf.get_by_id(1).protocol
+            conf_trans = Conf.get_by_id(1).connection
+            # Escribimos en la caractertistica el protocolo actual
+            characteristic_1 = bytes([conf_prot])
+            characteristic_2 = bytes([conf_trans])
+            # Concatenamos los bytes
+            characteristic = characteristic_1 + characteristic_2
+            #print(characteristic)
+            await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic)
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
         # print(get_bytes(char_value))
         # Lo añadimos a la base de datos
