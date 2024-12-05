@@ -7,6 +7,7 @@ class RealTimeCLI:
     def __init__(self):
         self.running = True
         self.recieving = False
+        self.recv_task = None
         self.ESPs = ["4C:EB:D6:62:0B:B2", "4C:EB:D6:62:0B:B2"]  # Modificar por la correcta
         self.current_ESP = None
         self.conn_type = -1
@@ -67,15 +68,20 @@ class RealTimeCLI:
                 print(f"Por favor, escoge una ESP con el commando 'choose'")
                 if self.conn_type == -1 and self.protocol == -1:
                     print(f"Por favor, envia una configuracion a la ESP con el commando 'configure'")
-            else:
+            elif not self.recieving:
                 self.recieving = True
-                await ble_client.recv_data()
-                await asyncio.sleep(1)  # Add delay to prevent excessive polling
+                if not self.recv_task or self.recv_task.done():
+                    self.recv_task = asyncio.create_task(self.recv_data_task())
                 print(f"Recibiendo datos de la ESP escogida")
         
         elif command == "stop":
-            self.recieving = False
-            print(f"Deteniendo la recepcion de datos de la ESP escogida")
+            if self.recieving:
+                self.recieving = False
+                print("Deteniendo recepcion de datos...")
+                if self.recv_task:
+                    await self.recv_task
+            else:
+                print("No hay recepcion de Datos.")
 
         elif command == "disconnect":
             if self.recieving:
@@ -118,10 +124,18 @@ class RealTimeCLI:
             "help": "Mostrar los comandos disponibles."
         }
 
-        print("Available commands:")
+        print("Comandos  commands:")
         for cmd, desc in COMMANDS.items():
             print(f"  {cmd} | {desc}")
 
+    async def recv_data_task(self):
+        while self.recieving:
+            try:
+                await ble_client.recv_data()
+                await asyncio.sleep(1)  # Adjust delay to control polling frequency
+            except Exception as e:
+                print(f"Error receiving data: {e}")
+    
     async def update_graph(self):
         # Set up the plot
         plt.ion()
