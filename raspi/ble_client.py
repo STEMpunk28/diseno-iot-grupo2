@@ -140,6 +140,9 @@ async def send_conf_async(ADDRESS):
 async def recv_data_async(ADDRESS):
     if (Conf.get_by_id(1).connection == 1):
         await send_conf_async(ADDRESS)
+        print("Durmiendo por 4 segundos...")
+        await asyncio.sleep(4)
+        print("Despertado.")
     async with BleakClient(ADDRESS) as client:
         char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
         # print(get_bytes(char_value))
