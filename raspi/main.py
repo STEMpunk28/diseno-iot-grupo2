@@ -163,7 +163,7 @@ class RealTimeCLI:
         while self.running:
             if self.data:
                 self.data.clear()
-                raw_timestamps = Data.select('timestamp').execute()
+                raw_timestamps = Data.select(Data.timestamp).execute()
                 raw_data = Data.select(self.columns[self.index]).execute()
                 self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
                 self.timestamps = [getattr(dt, 'timestamp') for dt in raw_timestamps]
