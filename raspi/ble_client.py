@@ -134,19 +134,14 @@ async def send_conf_async(ADDRESS):
         characteristic_2 = bytes([conf_trans])
         # Concatenamos los bytes
         characteristic = characteristic_1 + characteristic_2
-        #print(characteristic)
-        await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic, response=False)
+        # print(characteristic)
+        await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic)
 
 async def recv_data_async(ADDRESS):
-    if (Conf.get_by_id(1).connection == 1):
-        await send_conf_async(ADDRESS)
-        print("Durmiendo por 4 segundos...")
-        await asyncio.sleep(4)
-        print("Despertado.")
     async with BleakClient(ADDRESS) as client:
         try:
             char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
-            print(get_bytes(char_value))
+            # print(get_bytes(char_value))
             # Lo añadimos a la base de datos
             populate_db(char_value)
         except Exception as e:
@@ -157,4 +152,6 @@ async def send_conf():
     return Conf.get_by_id(1).protocol, Conf.get_by_id(1).connection
 
 async def recv_data():
+    if (Conf.get_by_id(1).connection == 1):
+        await send_conf_async(ADDRESS)
     await recv_data_async(ADDRESS)
