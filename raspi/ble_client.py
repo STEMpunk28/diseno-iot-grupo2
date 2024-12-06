@@ -135,7 +135,7 @@ async def send_conf_async(ADDRESS):
         # Concatenamos los bytes
         characteristic = characteristic_1 + characteristic_2
         #print(characteristic)
-        await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic)
+        await client.write_gatt_char(CHARACTERISTIC_UUID, characteristic, response=False)
 
 async def recv_data_async(ADDRESS):
     if (Conf.get_by_id(1).connection == 1):
