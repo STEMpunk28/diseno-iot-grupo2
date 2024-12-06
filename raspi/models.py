@@ -5,7 +5,7 @@ from playhouse.postgres_ext import *
 
 # Configuracion de la base de datos
 db_config = {
-    'host': "192.168.100.183", #'localhost',
+    'host': 'localhost',
     'port': 5432,
     'user': 'postgres',
     'password': 'postgres',
