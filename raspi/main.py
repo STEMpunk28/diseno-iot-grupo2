@@ -105,7 +105,7 @@ class RealTimeCLI:
             raw_data = Data.select(self.columns[var]).execute()
             clean_data = [getattr(dt, self.columns_text[var]) for dt in raw_data]
             filtered_data = list(filter(None, clean_data))
-            if self.data:
+            if filtered_data:
                 self.index = var
                 self.to_graph = self.columns_text[self.index]
                 self.data.clear()
