@@ -144,10 +144,13 @@ async def recv_data_async(ADDRESS):
         await asyncio.sleep(4)
         print("Despertado.")
     async with BleakClient(ADDRESS) as client:
-        char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
-        print(get_bytes(char_value))
-        # Lo añadimos a la base de datos
-        populate_db(char_value)
+        try:
+            char_value = await client.read_gatt_char(CHARACTERISTIC_UUID)
+            print(get_bytes(char_value))
+            # Lo añadimos a la base de datos
+            populate_db(char_value)
+        except Exception as e:
+            print(f"Error: {e}")
 
 async def send_conf():
     await send_conf_async(ADDRESS)
