@@ -104,7 +104,7 @@ class RealTimeCLI:
             var = int(input("Escribe el numero correspondiente: "))
             raw_data = Data.select(self.columns[var]).execute()
             clean_data = [getattr(dt, self.columns_text[var]) for dt in raw_data]
-            filtered_data = list(filter(None, clean_data))
+            filtered_data = list(filter(lambda x: x != None, clean_data))
             if filtered_data:
                 self.index = var
                 self.to_graph = self.columns_text[self.index]
@@ -168,8 +168,8 @@ class RealTimeCLI:
                 self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
                 self.timestamps = [getattr(dt, 'timestamp') for dt in raw_timestamps]
                 # Filtramos los Nones de la lista 
-                self.data = list(filter(None, self.data))
-                self.timestamps = list(filter(None, self.timestamps))
+                self.data = list(filter(lambda x: x != None, self.data))
+                self.timestamps = list(filter(lambda x: x != None, self.timestamps))
                 # x_data = list(range(len(self.data)))
                 x_data = self.timestamps
                 line.set_label(self.to_graph)
