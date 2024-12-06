@@ -80,6 +80,7 @@ static esp_attr_value_t gatts_demo_char1_val =
 // Variable global para almacenar el byte de protocolo y byte de conexión
 static char send_protocol;
 static char send_connection;
+static char sent_data = 0;
 
 
 static uint8_t adv_config_done = 0;
@@ -516,13 +517,8 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
         // rsp.attr_value.value[3] = 0xef;
         esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id,
                                     ESP_GATT_OK, &rsp);
+        sent_data = 1;
         free(pack);
-        if (send_connection == 1+'0') {
-            vTaskDelay(1000/portTICK_PERIOD_MS);
-            ESP_LOGI(GATTS_TAG, "Comunicación discontinua.");
-            ESP_LOGI(GATTS_TAG, "Durmiendo...");
-            esp_deep_sleep(1000000);
-        }
         break;
     }
     case ESP_GATTS_WRITE_EVT: {
@@ -630,6 +626,16 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
     case ESP_GATTS_DISCONNECT_EVT:
         ESP_LOGI(GATTS_TAG, "ESP_GATTS_DISCONNECT_EVT, disconnect reason 0x%x", param->disconnect.reason);
         esp_ble_gap_start_advertising(&adv_params);
+
+        if (send_connection == 1+'0') {
+            if (sent_data == 1) {
+                ESP_LOGI(GATTS_TAG, "Comunicación discontinua.");
+                ESP_LOGI(GATTS_TAG, "Durmiendo...");
+                esp_deep_sleep(1000000);
+            }
+        }
+
+
         break;
     case ESP_GATTS_CONF_EVT:
         ESP_LOGI(GATTS_TAG, "ESP_GATTS_CONF_EVT, status %d attr_handle %d", param->conf.status, param->conf.handle);
@@ -817,6 +823,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
                 }
             }
         }
+
     } while (0);
 }
 
@@ -882,6 +889,8 @@ void app_main(void)
     if (local_mtu_ret){
         ESP_LOGE(GATTS_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
+
+    
 
     return;
 }

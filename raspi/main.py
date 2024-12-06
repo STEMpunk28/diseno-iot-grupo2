@@ -18,6 +18,7 @@ class RealTimeCLI:
                              'amp_y', 'amp_z', 'fre_x', 'fre_y', 'fre_z', 'rms']
         self.to_graph = "None"
         self.index = -1
+        self.timestamps = []
         self.data = []
 
     async def run(self):
@@ -101,12 +102,17 @@ class RealTimeCLI:
                 print(f"{i} | {variable}")
                 i += 1
             var = int(input("Escribe el numero correspondiente: "))
-            self.index = var
-            self.to_graph = self.columns_text[self.index]
-            self.data.clear()
-            raw_data = Data.select(self.columns[self.index]).execute()
-            self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
-            print(f"Cambiando grafico a la variable {self.columns_text[self.index]}")
+            raw_data = Data.select(self.columns[var]).execute()
+            clean_data = [getattr(dt, self.columns_text[var]) for dt in raw_data]
+            filtered_data = list(filter(None, clean_data))
+            if self.data:
+                self.index = var
+                self.to_graph = self.columns_text[self.index]
+                self.data.clear()
+                self.data = filtered_data
+                print(f"Cambiando grafico a la variable {self.columns_text[self.index]}")
+            else:
+                print(f"No hay suficientes datos a graficar")
         
         elif command == "quit":
             self.running = False
@@ -157,9 +163,15 @@ class RealTimeCLI:
         while self.running:
             if self.data:
                 self.data.clear()
+                raw_timestamps = Data.select(self.columns['timestamp']).execute()
                 raw_data = Data.select(self.columns[self.index]).execute()
                 self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
-                x_data = list(range(len(self.data)))
+                self.timestamps = [getattr(dt, 'timestamp') for dt in raw_timestamps]
+                # Filtramos los Nones de la lista 
+                self.data = list(filter(None, self.data))
+                self.timestamps = list(filter(None, self.timestamps))
+                # x_data = list(range(len(self.data)))
+                x_data = self.timestamps
                 line.set_label(self.to_graph)
                 line.set_data(x_data, self.data)
                 ax.set_xlim(0, max(10, len(x_data)))
