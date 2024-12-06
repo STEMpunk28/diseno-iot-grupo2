@@ -20,6 +20,7 @@ class RealTimeCLI:
         self.index = -1
         self.timestamps = []
         self.data = []
+        self.tuples = []
 
     async def run(self):
         # Añadir las ESPs a la lista
@@ -167,11 +168,13 @@ class RealTimeCLI:
                 raw_data = Data.select(self.columns[self.index]).execute()
                 self.data = [getattr(dt, self.columns_text[self.index]) for dt in raw_data]
                 self.timestamps = [getattr(dt, 'timestamp') for dt in raw_timestamps]
-                # Filtramos los Nones de la lista 
-                self.data = list(filter(lambda x: x != None, self.data))
-                self.timestamps = list(filter(lambda x: x != None, self.timestamps))
-                # x_data = list(range(len(self.data)))
-                x_data = self.timestamps
+                self.tuples = list(zip(self.timestamps,self.data)) # Al final no usaremos el timestamp porque no es un identificador "único"
+                self.tuples = list(filter(lambda x: x[1] != None, self.tuples))
+                # Extraemos en listas separadas
+                self.data = [x[1] for x in self.tuples]
+                self.timestamps = [x[0] for x in self.tuples]
+                x_data = list(range(len(self.data)))
+                # x_data = self.timestamps
                 line.set_label(self.to_graph)
                 line.set_data(x_data, self.data)
                 ax.set_xlim(0, max(10, len(x_data)))
